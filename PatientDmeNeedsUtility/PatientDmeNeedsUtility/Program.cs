@@ -11,31 +11,11 @@ namespace Synapse.PatientDmeNeedsUtility
         static int Main(string[] args)
         {
             // Load the physician note from file
-            var fileName = "physician_note1.txt";
-            string fileContent;
+            const string fileName = "physician_note1.txt";
+            var physicianNoteText = ResourceFileHelper.ReadResourceFile(fileName);
 
-            try
-            {
-                string path = Path.Combine(AppContext.BaseDirectory, fileName);
-
-                if (!File.Exists(path))
-                {
-                    throw new FileNotFoundException($"File not found: {fileName}", path);
-                }
-
-                fileContent = File.ReadAllText(path);
-
-                if (string.IsNullOrWhiteSpace(fileContent))
-                {
-                    throw new InvalidDataException($"File '{fileName}' is empty or contains only whitespace.");
-                }
-            }
-            catch (Exception ex)
-            {
-                throw new IOException($"Failed to load file '{fileName}'.", ex);
-            }
-
-            var result = PhysicianNoteParser.Parse(fileContent);
+            // Parse the physician note to extract DME needs and serialize to JSON
+            var result = PhysicianNoteParser.Parse(physicianNoteText);
             var serializedJson = result.ToString();
 
             using (var httpClient = new HttpClient())
