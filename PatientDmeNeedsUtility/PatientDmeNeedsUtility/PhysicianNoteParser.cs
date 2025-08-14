@@ -74,13 +74,25 @@ namespace Synapse.PatientDmeNeedsUtility
                 }
             }
 
+            var matchName = Regex.Match(physicianNoteText, @"Patient Name:\s*(.+)", RegexOptions.IgnoreCase);
+            string patientName = matchName.Success ? matchName.Groups[1].Value.Trim() : string.Empty;
+
+            var matchDob = Regex.Match(physicianNoteText, @"DOB:\s*(\d{1,2}/\d{1,2}/\d{4})", RegexOptions.IgnoreCase);
+            string dob = matchDob.Success ? matchDob.Groups[1].Value : string.Empty;
+
+            var matchDiagnosis = Regex.Match(physicianNoteText, @"Diagnosis:\s*(.+)", RegexOptions.IgnoreCase);
+            var diagnosis = matchDiagnosis.Success ? matchDiagnosis.Groups[1].Value.Trim() : string.Empty;
+
             var result = new JObject
             {
                 ["device"] = deviceType,
                 ["mask_type"] = maskType,
                 ["add_ons"] = addOns != null ? new JArray(addOns) : null,
                 ["qualifier"] = qualifier,
-                ["ordering_provider"] = orderingProvider
+                ["ordering_provider"] = orderingProvider,
+                ["patient_name"] = patientName,
+                ["dob"] = dob,
+                ["diagnosis"] = diagnosis
             };
 
             if (deviceType == "Oxygen Tank")
