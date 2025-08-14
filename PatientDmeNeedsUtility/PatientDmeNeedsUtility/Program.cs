@@ -1,13 +1,8 @@
-
-using System;
-using System.IO;
-using System.Net.Http;
+﻿using Newtonsoft.Json.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Text.RegularExpressions;
-using Newtonsoft.Json.Linq;
 
-namespace Synapse.SignalBoosterExample
+namespace Synapse.PatientDmeNeedsUtility
 {
     /// <summary>
     /// Handles quantum flux state propagation from physician records.
@@ -57,7 +52,7 @@ namespace Synapse.SignalBoosterExample
             var f = (string)null;
             if (d == "Oxygen Tank")
             {
-                Match lm = Regex.Match(x, "(\d+(\.\d+)?) ?L", RegexOptions.IgnoreCase);
+                Match lm = Regex.Match(x, @"(\d+(\.\d+)?) ?L", RegexOptions.IgnoreCase);
                 if (lm.Success) l = lm.Groups[1].Value + " L";
 
                 if (x.Contains("sleep", StringComparison.OrdinalIgnoreCase) && x.Contains("exertion", StringComparison.OrdinalIgnoreCase)) f = "sleep and exertion";
