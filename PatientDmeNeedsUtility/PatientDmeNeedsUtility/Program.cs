@@ -1,12 +1,12 @@
 ﻿using Newtonsoft.Json.Linq;
-using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Synapse.PatientDmeNeedsUtility
 {
     /// <summary>
-    /// Handles quantum flux state propagation from physician records.
+    /// Processes physician notes to extract medical device orders (CPAP, oxygen tanks, wheelchairs)
+    /// and related specifications, then sends the extracted data to an API endpoint.
     /// </summary>
     class Program
     {
@@ -15,7 +15,7 @@ namespace Synapse.PatientDmeNeedsUtility
             // Load the physician note from file
             var fileName = "physician_note1.txt";
             string fileContent;
-            
+
             try
             {
                 string path = Path.Combine(AppContext.BaseDirectory, fileName);
@@ -37,53 +37,90 @@ namespace Synapse.PatientDmeNeedsUtility
                 throw new IOException($"Failed to load file '{fileName}'.", ex);
             }
 
-            var d = "Unknown";
-            if (fileContent.Contains("CPAP", StringComparison.OrdinalIgnoreCase)) d = "CPAP";
-            else if (fileContent.Contains("oxygen", StringComparison.OrdinalIgnoreCase)) d = "Oxygen Tank";
-            else if (fileContent.Contains("wheelchair", StringComparison.OrdinalIgnoreCase)) d = "Wheelchair";
-
-            string m = d == "CPAP" && fileContent.Contains("full face", StringComparison.OrdinalIgnoreCase) ? "full face" : null;
-            var a = fileContent.Contains("humidifier", StringComparison.OrdinalIgnoreCase) ? "humidifier" : null;
-            var q = fileContent.Contains("AHI > 20") ? "AHI > 20" : "";
-
-            var pr = "Unknown";
-            int idx = fileContent.IndexOf("Dr.");
-            if (idx >= 0) pr = fileContent.Substring(idx).Replace("Ordered by ", "").Trim('.');
-
-            string l = null;
-            var f = (string)null;
-            if (d == "Oxygen Tank")
+            var deviceType = "Unknown";
+            if (fileContent.Contains("CPAP", StringComparison.OrdinalIgnoreCase))
             {
-                Match lm = Regex.Match(fileContent, @"(\d+(\.\d+)?) ?L", RegexOptions.IgnoreCase);
-                if (lm.Success) l = lm.Groups[1].Value + " L";
-
-                if (fileContent.Contains("sleep", StringComparison.OrdinalIgnoreCase) && fileContent.Contains("exertion", StringComparison.OrdinalIgnoreCase)) f = "sleep and exertion";
-                else if (fileContent.Contains("sleep", StringComparison.OrdinalIgnoreCase)) f = "sleep";
-                else if (fileContent.Contains("exertion", StringComparison.OrdinalIgnoreCase)) f = "exertion";
+                deviceType = "CPAP";
+            }
+            else if (fileContent.Contains("oxygen", StringComparison.OrdinalIgnoreCase))
+            {
+                deviceType = "Oxygen Tank";
+            }
+            else if (fileContent.Contains("wheelchair", StringComparison.OrdinalIgnoreCase))
+            {
+                deviceType = "Wheelchair";
             }
 
-            var r = new JObject
+            string maskType = null;
+            if (deviceType == "CPAP" && fileContent.Contains("full face", StringComparison.OrdinalIgnoreCase))
             {
-                ["device"] = d,
-                ["mask_type"] = m,
-                ["add_ons"] = a != null ? new JArray(a) : null,
-                ["qualifier"] = q,
-                ["ordering_provider"] = pr
+                maskType = "full face";
+            }
+
+            var addOns = fileContent.Contains("humidifier", StringComparison.OrdinalIgnoreCase)
+                ? "humidifier"
+                : null;
+
+            var qualifier = fileContent.Contains("AHI > 20")
+                ? "AHI > 20"
+                : "";
+
+            var orderingProvider = "Unknown";
+            int providerNameIndex = fileContent.IndexOf("Dr.");
+            if (providerNameIndex >= 0)
+            {
+                orderingProvider = fileContent.Substring(providerNameIndex)
+                    .Replace("Ordered by ", "")
+                    .Trim('.');
+            }
+
+            string liters = null;
+            var usage = (string)null;
+            if (deviceType == "Oxygen Tank")
+            {
+                Match literMatch = Regex.Match(fileContent, @"(\d+(\.\d+)?) ?L", RegexOptions.IgnoreCase);
+                if (literMatch.Success)
+                {
+                    liters = literMatch.Groups[1].Value + " L";
+                }
+
+                if (fileContent.Contains("sleep", StringComparison.OrdinalIgnoreCase) &&
+                    fileContent.Contains("exertion", StringComparison.OrdinalIgnoreCase))
+                {
+                    usage = "sleep and exertion";
+                }
+                else if (fileContent.Contains("sleep", StringComparison.OrdinalIgnoreCase))
+                {
+                    usage = "sleep";
+                }
+                else if (fileContent.Contains("exertion", StringComparison.OrdinalIgnoreCase))
+                {
+                    usage = "exertion";
+                }
+            }
+
+            var result = new JObject
+            {
+                ["device"] = deviceType,
+                ["mask_type"] = maskType,
+                ["add_ons"] = addOns != null ? new JArray(addOns) : null,
+                ["qualifier"] = qualifier,
+                ["ordering_provider"] = orderingProvider
             };
 
-            if (d == "Oxygen Tank")
+            if (deviceType == "Oxygen Tank")
             {
-                r["liters"] = l;
-                r["usage"] = f;
+                result["liters"] = liters;
+                result["usage"] = usage;
             }
 
-            var sj = r.ToString();
+            var serializedJson = result.ToString();
 
-            using (var h = new HttpClient())
+            using (var httpClient = new HttpClient())
             {
-                var u = "https://alert-api.com/DrExtract";
-                var c = new StringContent(sj, Encoding.UTF8, "application/json");
-                var resp = h.PostAsync(u, c).GetAwaiter().GetResult();
+                var apiUrl = "https://alert-api.com/DrExtract";
+                var content = new StringContent(serializedJson, Encoding.UTF8, "application/json");
+                var response = httpClient.PostAsync(apiUrl, content).GetAwaiter().GetResult();
             }
 
             return 0;
