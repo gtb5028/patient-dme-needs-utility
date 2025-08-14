@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
+﻿using System.Text;
 
 namespace Synapse.PatientDmeNeedsUtility
 {
@@ -37,83 +35,7 @@ namespace Synapse.PatientDmeNeedsUtility
                 throw new IOException($"Failed to load file '{fileName}'.", ex);
             }
 
-            var deviceType = "Unknown";
-            if (fileContent.Contains("CPAP", StringComparison.OrdinalIgnoreCase))
-            {
-                deviceType = "CPAP";
-            }
-            else if (fileContent.Contains("oxygen", StringComparison.OrdinalIgnoreCase))
-            {
-                deviceType = "Oxygen Tank";
-            }
-            else if (fileContent.Contains("wheelchair", StringComparison.OrdinalIgnoreCase))
-            {
-                deviceType = "Wheelchair";
-            }
-
-            string maskType = null;
-            if (deviceType == "CPAP" && fileContent.Contains("full face", StringComparison.OrdinalIgnoreCase))
-            {
-                maskType = "full face";
-            }
-
-            var addOns = fileContent.Contains("humidifier", StringComparison.OrdinalIgnoreCase)
-                ? "humidifier"
-                : null;
-
-            var qualifier = fileContent.Contains("AHI > 20")
-                ? "AHI > 20"
-                : "";
-
-            var orderingProvider = "Unknown";
-            int providerNameIndex = fileContent.IndexOf("Dr.");
-            if (providerNameIndex >= 0)
-            {
-                orderingProvider = fileContent.Substring(providerNameIndex)
-                    .Replace("Ordered by ", "")
-                    .Trim('.');
-            }
-
-            string liters = null;
-            var usage = (string)null;
-            if (deviceType == "Oxygen Tank")
-            {
-                Match literMatch = Regex.Match(fileContent, @"(\d+(\.\d+)?) ?L", RegexOptions.IgnoreCase);
-                if (literMatch.Success)
-                {
-                    liters = literMatch.Groups[1].Value + " L";
-                }
-
-                if (fileContent.Contains("sleep", StringComparison.OrdinalIgnoreCase) &&
-                    fileContent.Contains("exertion", StringComparison.OrdinalIgnoreCase))
-                {
-                    usage = "sleep and exertion";
-                }
-                else if (fileContent.Contains("sleep", StringComparison.OrdinalIgnoreCase))
-                {
-                    usage = "sleep";
-                }
-                else if (fileContent.Contains("exertion", StringComparison.OrdinalIgnoreCase))
-                {
-                    usage = "exertion";
-                }
-            }
-
-            var result = new JObject
-            {
-                ["device"] = deviceType,
-                ["mask_type"] = maskType,
-                ["add_ons"] = addOns != null ? new JArray(addOns) : null,
-                ["qualifier"] = qualifier,
-                ["ordering_provider"] = orderingProvider
-            };
-
-            if (deviceType == "Oxygen Tank")
-            {
-                result["liters"] = liters;
-                result["usage"] = usage;
-            }
-
+            var result = PhysicianNoteParser.Parse(fileContent);
             var serializedJson = result.ToString();
 
             using (var httpClient = new HttpClient())
