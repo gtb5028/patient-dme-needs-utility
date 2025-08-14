@@ -43,14 +43,11 @@ namespace Synapse.PatientDmeNeedsUtility
                 ? "AHI > 20"
                 : "";
 
-            var orderingProvider = "Unknown";
-            int providerNameIndex = physicianNoteText.IndexOf("Dr.");
-            if (providerNameIndex >= 0)
-            {
-                orderingProvider = physicianNoteText.Substring(providerNameIndex)
-                    .Replace("Ordered by ", "")
-                    .Trim('.');
-            }
+            var providerPattern = @"(?:Ordering Physician|Ordered By)\s*:?\s*(.+)";
+            var matchProvider = Regex.Match(physicianNoteText, providerPattern, RegexOptions.IgnoreCase);
+            var orderingProvider = matchProvider.Success
+                ? matchProvider.Groups[1].Value.Trim().TrimEnd('.', ',')
+                : "Unknown";
 
             string liters = null;
             var usage = (string)null;
