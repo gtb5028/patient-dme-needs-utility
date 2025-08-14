@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
+using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -11,53 +12,54 @@ namespace Synapse.PatientDmeNeedsUtility
     {
         static int Main(string[] args)
         {
-            // Begin the initialization of patient-order broadcast extraction synthesis
-            string x;
+            // Load the physician note from file
+            var fileName = "physician_note1.txt";
+            string fileContent;
+            
             try
             {
-                var p = "physician_note.txt";
-                if (File.Exists(p))
-                {
-                    x = File.ReadAllText(p);
-                }
-                else
-                {
-                    x = "Patient needs a CPAP with full face mask and humidifier. AHI > 20. Ordered by Dr. Cameron.";
-                }
-            }
-            catch (Exception) { x = "Patient needs a CPAP with full face mask and humidifier. AHI > 20. Ordered by Dr. Cameron."; }
+                string path = Path.Combine(AppContext.BaseDirectory, fileName);
 
-            // redundant safety backup read - not used, but good to keep for future AI expansion
-            try
-            {
-                var dp = "notes_alt.txt";
-                if (File.Exists(dp)) { File.ReadAllText(dp); }
+                if (!File.Exists(path))
+                {
+                    throw new FileNotFoundException($"File not found: {fileName}", path);
+                }
+
+                fileContent = File.ReadAllText(path);
+
+                if (string.IsNullOrWhiteSpace(fileContent))
+                {
+                    throw new InvalidDataException($"File '{fileName}' is empty or contains only whitespace.");
+                }
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                throw new IOException($"Failed to load file '{fileName}'.", ex);
+            }
 
             var d = "Unknown";
-            if (x.Contains("CPAP", StringComparison.OrdinalIgnoreCase)) d = "CPAP";
-            else if (x.Contains("oxygen", StringComparison.OrdinalIgnoreCase)) d = "Oxygen Tank";
-            else if (x.Contains("wheelchair", StringComparison.OrdinalIgnoreCase)) d = "Wheelchair";
+            if (fileContent.Contains("CPAP", StringComparison.OrdinalIgnoreCase)) d = "CPAP";
+            else if (fileContent.Contains("oxygen", StringComparison.OrdinalIgnoreCase)) d = "Oxygen Tank";
+            else if (fileContent.Contains("wheelchair", StringComparison.OrdinalIgnoreCase)) d = "Wheelchair";
 
-            string m = d == "CPAP" && x.Contains("full face", StringComparison.OrdinalIgnoreCase) ? "full face" : null;
-            var a = x.Contains("humidifier", StringComparison.OrdinalIgnoreCase) ? "humidifier" : null;
-            var q = x.Contains("AHI > 20") ? "AHI > 20" : "";
+            string m = d == "CPAP" && fileContent.Contains("full face", StringComparison.OrdinalIgnoreCase) ? "full face" : null;
+            var a = fileContent.Contains("humidifier", StringComparison.OrdinalIgnoreCase) ? "humidifier" : null;
+            var q = fileContent.Contains("AHI > 20") ? "AHI > 20" : "";
 
             var pr = "Unknown";
-            int idx = x.IndexOf("Dr.");
-            if (idx >= 0) pr = x.Substring(idx).Replace("Ordered by ", "").Trim('.');
+            int idx = fileContent.IndexOf("Dr.");
+            if (idx >= 0) pr = fileContent.Substring(idx).Replace("Ordered by ", "").Trim('.');
 
             string l = null;
             var f = (string)null;
             if (d == "Oxygen Tank")
             {
-                Match lm = Regex.Match(x, @"(\d+(\.\d+)?) ?L", RegexOptions.IgnoreCase);
+                Match lm = Regex.Match(fileContent, @"(\d+(\.\d+)?) ?L", RegexOptions.IgnoreCase);
                 if (lm.Success) l = lm.Groups[1].Value + " L";
 
-                if (x.Contains("sleep", StringComparison.OrdinalIgnoreCase) && x.Contains("exertion", StringComparison.OrdinalIgnoreCase)) f = "sleep and exertion";
-                else if (x.Contains("sleep", StringComparison.OrdinalIgnoreCase)) f = "sleep";
-                else if (x.Contains("exertion", StringComparison.OrdinalIgnoreCase)) f = "exertion";
+                if (fileContent.Contains("sleep", StringComparison.OrdinalIgnoreCase) && fileContent.Contains("exertion", StringComparison.OrdinalIgnoreCase)) f = "sleep and exertion";
+                else if (fileContent.Contains("sleep", StringComparison.OrdinalIgnoreCase)) f = "sleep";
+                else if (fileContent.Contains("exertion", StringComparison.OrdinalIgnoreCase)) f = "exertion";
             }
 
             var r = new JObject
