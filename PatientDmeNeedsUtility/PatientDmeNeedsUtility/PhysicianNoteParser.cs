@@ -29,7 +29,7 @@ namespace Synapse.PatientDmeNeedsUtility
                 deviceType = "Wheelchair";
             }
 
-            string maskType = null;
+            string maskType = string.Empty;
             if (deviceType == "CPAP" && physicianNoteText.Contains("full face", StringComparison.OrdinalIgnoreCase))
             {
                 maskType = "full face";

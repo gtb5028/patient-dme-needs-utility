@@ -5,5 +5,8 @@
   "diagnosis": "COPD",
   "ordering_provider": "Dr. Cuddy",
   "patient_name": "Harold Finch",
-  "dob": "04/12/1952"
+  "dob": "04/12/1952",
+  "mask_type": "",
+  "add_ons": null,
+  "qualifier": ""
 }

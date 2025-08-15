@@ -12,6 +12,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Resources", "Resources", "{
 		Resources\physician_note2.txt = Resources\physician_note2.txt
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PatientDmeNeedsUtility.Tests", "PatientDmeNeedsUtility.Tests\PatientDmeNeedsUtility.Tests.csproj", "{47786A88-17FD-427C-AD43-CAC5CED1FB1D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -22,6 +24,10 @@ Global
 		{9F0F6376-C60E-4B09-A063-CC35255AD536}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9F0F6376-C60E-4B09-A063-CC35255AD536}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9F0F6376-C60E-4B09-A063-CC35255AD536}.Release|Any CPU.Build.0 = Release|Any CPU
+		{47786A88-17FD-427C-AD43-CAC5CED1FB1D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{47786A88-17FD-427C-AD43-CAC5CED1FB1D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{47786A88-17FD-427C-AD43-CAC5CED1FB1D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{47786A88-17FD-427C-AD43-CAC5CED1FB1D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
