@@ -98,6 +98,15 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
             Assert.True(result.SetEquals(expectedSet), $"Expected: {string.Join(",", expected)} | Actual: {string.Join(",", result)}");
         }
 
+        [Theory]
+        [InlineData("Patient needs humidifier", PhysicianNoteParser.HumidifierKeyword)]
+        [InlineData("No add-ons needed", null)]
+        public void ParseAddOns_Detects_Humidifier(string note, string expected)
+        {
+            var result = PhysicianNoteParser.ParseAddOns(note);
+            Assert.Equal(expected, result);
+        }
+
         private class PatientDmeNeedsComparer : IEqualityComparer<PatientDmeNeeds>
         {
             public bool Equals(PatientDmeNeeds x, PatientDmeNeeds y)

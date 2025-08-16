@@ -8,6 +8,7 @@ namespace Synapse.PatientDmeNeedsUtility
     /// </summary>
     public static class PhysicianNoteParser
     {
+        public const string HumidifierKeyword = "humidifier";
         public static readonly Dictionary<string, MedicalDeviceType> DeviceKeywords =
             new Dictionary<string, MedicalDeviceType>(StringComparer.OrdinalIgnoreCase)
             {
@@ -29,10 +30,7 @@ namespace Synapse.PatientDmeNeedsUtility
 
             MedicalDeviceType deviceType = ParseDeviceType(physicianNoteText);
             MaskType maskType = ParseMaskType(physicianNoteText, deviceType);
-
-            var addOns = physicianNoteText.Contains("humidifier", StringComparison.OrdinalIgnoreCase)
-                ? "humidifier"
-                : null;
+            string addOns = ParseAddOns(physicianNoteText);
 
             var qualifier = physicianNoteText.Contains("AHI > 20")
                 ? "AHI > 20"
@@ -112,6 +110,17 @@ namespace Synapse.PatientDmeNeedsUtility
             }
 
             return MaskType.None;
+        }
+
+        /// <summary>
+        /// Parses the physician note text to identify any DME add-ons mentioned.
+        /// </summary>
+        /// <param name="physicianNoteText">The text content of the physician note to parse.</param>
+        public static string ParseAddOns(string physicianNoteText)
+        {
+            return physicianNoteText.Contains(HumidifierKeyword, StringComparison.OrdinalIgnoreCase)
+                ? HumidifierKeyword
+                : null;
         }
 
         /// <summary>
