@@ -57,6 +57,19 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
         }
 
         [Theory]
+        [InlineData("Patient needs CPAP", MedicalDeviceType.CPAP)]
+        [InlineData("Requires oxygen tank", MedicalDeviceType.OxygenTank)]
+        [InlineData("Prescribe wheelchair", MedicalDeviceType.Wheelchair)]
+        [InlineData("Needs CpAp machine", MedicalDeviceType.CPAP)] // Case insensitivity
+        [InlineData("CPAP and oxygen", MedicalDeviceType.CPAP)] // First match
+        [InlineData("No device needed", MedicalDeviceType.Unknown)] // No match
+        public void ParseDeviceType_Returns_Correct_Device(string note, MedicalDeviceType expected)
+        {
+            var result = PhysicianNoteParser.ParseDeviceType(note);
+            Assert.Equal(expected, result);
+        }
+
+        [Theory]
         // Standard cases
         [InlineData("Use oxygen during sleep", new[] { Usage.Sleep })]
         [InlineData("Oxygen required for exertion", new[] { Usage.Exertion })]

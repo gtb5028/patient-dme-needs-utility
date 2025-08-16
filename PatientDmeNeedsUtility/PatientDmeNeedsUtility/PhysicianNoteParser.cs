@@ -8,6 +8,14 @@ namespace Synapse.PatientDmeNeedsUtility
     /// </summary>
     public static class PhysicianNoteParser
     {
+        public static readonly Dictionary<string, MedicalDeviceType> DeviceKeywords =
+            new Dictionary<string, MedicalDeviceType>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "CPAP", MedicalDeviceType.CPAP },
+                { "oxygen", MedicalDeviceType.OxygenTank },
+                { "wheelchair", MedicalDeviceType.Wheelchair }
+            };
+
         /// <summary>
         /// Parses physician note content and extracts relevant DME order details.
         /// </summary>
@@ -19,20 +27,7 @@ namespace Synapse.PatientDmeNeedsUtility
                 throw new ArgumentException(nameof(physicianNoteText), "Physician note text cannot be null or whitespace.");
             }
 
-            var deviceType = MedicalDeviceType.Unknown;
-            if (physicianNoteText.Contains("CPAP", StringComparison.OrdinalIgnoreCase))
-            {
-                deviceType = MedicalDeviceType.CPAP;
-            }
-            else if (physicianNoteText.Contains("oxygen", StringComparison.OrdinalIgnoreCase))
-            {
-                deviceType = MedicalDeviceType.OxygenTank;
-            }
-            else if (physicianNoteText.Contains("wheelchair", StringComparison.OrdinalIgnoreCase))
-            {
-                deviceType = MedicalDeviceType.Wheelchair;
-            }
-
+            MedicalDeviceType deviceType = ParseDeviceType(physicianNoteText);
             MaskType maskType = MaskType.None;
             if (deviceType == MedicalDeviceType.CPAP &&
                 physicianNoteText.Contains("full face", StringComparison.OrdinalIgnoreCase))
@@ -89,6 +84,23 @@ namespace Synapse.PatientDmeNeedsUtility
             };
 
             return result;
+        }
+
+        /// <summary>
+        /// Parses the physician note text to detect which medical device is mentioned.
+        /// </summary>
+        /// <param name="physicianNoteText">The text content of the physician note to parse.</param>
+        public static MedicalDeviceType ParseDeviceType(string physicianNoteText)
+        {
+            foreach (var (keyword, deviceType) in DeviceKeywords)
+            {
+                if (physicianNoteText.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+                {
+                    return deviceType;
+                }
+            }
+
+            return MedicalDeviceType.Unknown;
         }
 
         /// <summary>
