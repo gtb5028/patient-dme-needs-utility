@@ -15,6 +15,11 @@ namespace Synapse.PatientDmeNeedsUtility
         /// <param name="physicianNoteText">The text content of the physician note to parse.</param>
         public static JObject Parse(string physicianNoteText)
         {
+            if (string.IsNullOrWhiteSpace(physicianNoteText))
+            {
+                throw new ArgumentException(nameof(physicianNoteText), "Physician note text cannot be null or whitespace.");
+            }
+
             var deviceType = "Unknown";
             if (physicianNoteText.Contains("CPAP", StringComparison.OrdinalIgnoreCase))
             {

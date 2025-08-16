@@ -28,5 +28,29 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
                 "Parsed physician note JSON did not match the expected output."
             );
         }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData("  ")]
+        public void Parse_RejectsInvalidInputs(string input)
+        {
+            try
+            {
+                PhysicianNoteParser.Parse(input);
+                Assert.Fail($"Expected ArgumentException for input: '{input}'");
+            }
+            catch (ArgumentException)
+            {
+                // Test passes as exception was expected no need to assert
+                // just return
+                return;
+            }
+            catch (Exception ex)
+            {
+                // Fail with details if wrong exception type
+                Assert.Fail($"Expected ArgumentException but got {ex.GetType().Name}: {ex.Message}");
+            }
+        }
     }
 }
