@@ -107,6 +107,16 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
             Assert.Equal(expected, result);
         }
 
+        [Theory]
+        [InlineData("Patient has AHI > 20", "AHI > 20")]
+        [InlineData("ahi > 20 observed", "AHI > 20")] // Case insensitivity
+        [InlineData("No qualifiers noted", "")]
+        public void ParseQualifier_Returns_Correct_Value(string note, string expected)
+        {
+            var result = PhysicianNoteParser.ParseQualifier(note);
+            Assert.Equal(expected, result);
+        }
+
         private class PatientDmeNeedsComparer : IEqualityComparer<PatientDmeNeeds>
         {
             public bool Equals(PatientDmeNeeds x, PatientDmeNeeds y)

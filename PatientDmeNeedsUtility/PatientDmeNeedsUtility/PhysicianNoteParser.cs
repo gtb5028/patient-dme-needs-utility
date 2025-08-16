@@ -8,6 +8,7 @@ namespace Synapse.PatientDmeNeedsUtility
     /// </summary>
     public static class PhysicianNoteParser
     {
+        public const string AhiQualifierKeyword = "AHI > 20";
         public const string HumidifierKeyword = "humidifier";
         public static readonly Dictionary<string, MedicalDeviceType> DeviceKeywords =
             new Dictionary<string, MedicalDeviceType>(StringComparer.OrdinalIgnoreCase)
@@ -31,10 +32,7 @@ namespace Synapse.PatientDmeNeedsUtility
             MedicalDeviceType deviceType = ParseDeviceType(physicianNoteText);
             MaskType maskType = ParseMaskType(physicianNoteText, deviceType);
             string addOns = ParseAddOns(physicianNoteText);
-
-            var qualifier = physicianNoteText.Contains("AHI > 20")
-                ? "AHI > 20"
-                : "";
+            string qualifier = ParseQualifier(physicianNoteText);
 
             var providerPattern = @"(?:Ordering Physician|Ordered By)\s*:?\s*(.+)";
             var matchProvider = Regex.Match(physicianNoteText, providerPattern, RegexOptions.IgnoreCase);
@@ -121,6 +119,18 @@ namespace Synapse.PatientDmeNeedsUtility
             return physicianNoteText.Contains(HumidifierKeyword, StringComparison.OrdinalIgnoreCase)
                 ? HumidifierKeyword
                 : null;
+        }
+
+        /// <summary>
+        /// Parses the physician note text for qualifying conditions that affect DME approval.
+        /// Currently detects AHI (Apnea-Hypopnea Index) qualifiers for sleep apnea devices.
+        /// </summary>
+        /// <param name="physicianNoteText">The text content of the physician note to parse.</param>
+        public static string ParseQualifier(string physicianNoteText)
+        {
+            return physicianNoteText.Contains(AhiQualifierKeyword, StringComparison.OrdinalIgnoreCase)
+                ? AhiQualifierKeyword
+                : string.Empty;
         }
 
         /// <summary>
