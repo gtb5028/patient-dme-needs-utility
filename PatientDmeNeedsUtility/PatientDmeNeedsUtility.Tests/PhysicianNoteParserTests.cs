@@ -70,6 +70,15 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
         }
 
         [Theory]
+        [InlineData("CPAP with full face mask", MedicalDeviceType.CPAP, MaskType.FullFace)]
+        [InlineData("CPAP but no mask specified", MedicalDeviceType.CPAP, MaskType.None)]
+        public void ParseMaskType_Returns_Correct_Mask(string note, MedicalDeviceType device, MaskType expected)
+        {
+            var result = PhysicianNoteParser.ParseMaskType(note, device);
+            Assert.Equal(expected, result);
+        }
+
+        [Theory]
         // Standard cases
         [InlineData("Use oxygen during sleep", new[] { Usage.Sleep })]
         [InlineData("Oxygen required for exertion", new[] { Usage.Exertion })]

@@ -28,12 +28,7 @@ namespace Synapse.PatientDmeNeedsUtility
             }
 
             MedicalDeviceType deviceType = ParseDeviceType(physicianNoteText);
-            MaskType maskType = MaskType.None;
-            if (deviceType == MedicalDeviceType.CPAP &&
-                physicianNoteText.Contains("full face", StringComparison.OrdinalIgnoreCase))
-            {
-                maskType = MaskType.FullFace;
-            }
+            MaskType maskType = ParseMaskType(physicianNoteText, deviceType);
 
             var addOns = physicianNoteText.Contains("humidifier", StringComparison.OrdinalIgnoreCase)
                 ? "humidifier"
@@ -101,6 +96,22 @@ namespace Synapse.PatientDmeNeedsUtility
             }
 
             return MedicalDeviceType.Unknown;
+        }
+
+        /// <summary>
+        /// Determines the mask type required based on physician notes and detected device type.
+        /// </summary>
+        /// <param name="physicianNoteText">The physician's note text to analyze.</param>
+        /// <param name="currentDeviceType">The medical device type detected from the notes.</param>
+        public static MaskType ParseMaskType(string physicianNoteText, MedicalDeviceType currentDeviceType)
+        {
+            if (currentDeviceType == MedicalDeviceType.CPAP &&
+                physicianNoteText.Contains("full face", StringComparison.OrdinalIgnoreCase))
+            {
+                return MaskType.FullFace;
+            }
+
+            return MaskType.None;
         }
 
         /// <summary>
