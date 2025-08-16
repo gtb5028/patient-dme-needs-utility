@@ -58,20 +58,20 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
 
         [Theory]
         // Standard cases
-        [InlineData("Use oxygen during sleep", new[] { "sleep" })]
-        [InlineData("Oxygen required for exertion", new[] { "exertion" })]
-        [InlineData("Needs oxygen for sleep and exertion", new[] { "sleep", "exertion" })]
+        [InlineData("Use oxygen during sleep", new[] { Usage.Sleep })]
+        [InlineData("Oxygen required for exertion", new[] { Usage.Exertion })]
+        [InlineData("Needs oxygen for sleep and exertion", new[] { Usage.Sleep, Usage.Exertion })]
         // Edge cases
-        [InlineData("", new string[0])]
-        [InlineData(null, new string[0])]
-        [InlineData("No usage mentioned", new string[0])]
-        [InlineData("sleeping and exercising", new[] { "sleep" })]
+        [InlineData("", new Usage[0])]
+        [InlineData(null, new Usage[0])]
+        [InlineData("No usage mentioned", new Usage[0])]
+        [InlineData("sleeping and exercising", new[] { Usage.Sleep })]
         // Case sensitivity
-        [InlineData("SLEEP and EXERTION", new[] { "sleep", "exertion" })]
-        public void ParseUsage_DetectsUsageScenarios(string input, string[] expected)
+        [InlineData("SLEEP and EXERTION", new[] { Usage.Sleep, Usage.Exertion })]
+        public void ParseUsage_DetectsUsageScenarios(string input, Usage[] expected)
         {
             var result = PhysicianNoteParser.ParseUsage(input);
-            var expectedSet = new HashSet<string>(expected, StringComparer.OrdinalIgnoreCase);
+            var expectedSet = new HashSet<Usage>(expected);
 
             Assert.True(result.SetEquals(expectedSet), $"Expected: {string.Join(",", expected)} | Actual: {string.Join(",", result)}");
         }

@@ -19,24 +19,25 @@ namespace Synapse.PatientDmeNeedsUtility
                 throw new ArgumentException(nameof(physicianNoteText), "Physician note text cannot be null or whitespace.");
             }
 
-            var deviceType = "Unknown";
+            var deviceType = MedicalDeviceType.Unknown;
             if (physicianNoteText.Contains("CPAP", StringComparison.OrdinalIgnoreCase))
             {
-                deviceType = "CPAP";
+                deviceType = MedicalDeviceType.CPAP;
             }
             else if (physicianNoteText.Contains("oxygen", StringComparison.OrdinalIgnoreCase))
             {
-                deviceType = "Oxygen Tank";
+                deviceType = MedicalDeviceType.OxygenTank;
             }
             else if (physicianNoteText.Contains("wheelchair", StringComparison.OrdinalIgnoreCase))
             {
-                deviceType = "Wheelchair";
+                deviceType = MedicalDeviceType.Wheelchair;
             }
 
-            string maskType = string.Empty;
-            if (deviceType == "CPAP" && physicianNoteText.Contains("full face", StringComparison.OrdinalIgnoreCase))
+            MaskType maskType = MaskType.None;
+            if (deviceType == MedicalDeviceType.CPAP &&
+                physicianNoteText.Contains("full face", StringComparison.OrdinalIgnoreCase))
             {
-                maskType = "full face";
+                maskType = MaskType.FullFace;
             }
 
             var addOns = physicianNoteText.Contains("humidifier", StringComparison.OrdinalIgnoreCase)
@@ -55,7 +56,7 @@ namespace Synapse.PatientDmeNeedsUtility
 
             string liters = null;
             var usage = ParseUsage(physicianNoteText);
-            if (deviceType == "Oxygen Tank")
+            if (deviceType == MedicalDeviceType.OxygenTank)
             {
                 Match literMatch = Regex.Match(physicianNoteText, @"(\d+(\.\d+)?) ?L", RegexOptions.IgnoreCase);
                 if (literMatch.Success)
@@ -94,9 +95,9 @@ namespace Synapse.PatientDmeNeedsUtility
         /// Parses physician note content and extracts usage.
         /// </summary>
         /// <param name="physicianNoteText">The text content of the physician note to parse.</param>
-        public static HashSet<string> ParseUsage(string physicianNoteText)
+        public static HashSet<Usage> ParseUsage(string physicianNoteText)
         {
-            var usage = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var usage = new HashSet<Usage>();
 
             if (string.IsNullOrWhiteSpace(physicianNoteText))
             {
@@ -105,12 +106,12 @@ namespace Synapse.PatientDmeNeedsUtility
 
             if (physicianNoteText.Contains("sleep", StringComparison.OrdinalIgnoreCase))
             {
-                usage.Add("sleep");
+                usage.Add(Usage.Sleep);
             }
 
             if (physicianNoteText.Contains("exertion", StringComparison.OrdinalIgnoreCase))
             {
-                usage.Add("exertion");
+                usage.Add(Usage.Exertion);
             }
 
             return usage;

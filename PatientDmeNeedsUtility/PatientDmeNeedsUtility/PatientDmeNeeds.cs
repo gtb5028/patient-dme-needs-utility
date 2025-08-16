@@ -1,7 +1,30 @@
 ﻿using Newtonsoft.Json;
+using static Synapse.PatientDmeNeedsUtility.PhysicianNoteParser;
 
 namespace Synapse.PatientDmeNeedsUtility
 {
+    public enum MedicalDeviceType
+    {
+        Unknown,
+        CPAP,
+        OxygenTank,
+        Wheelchair
+    }
+
+    public enum MaskType
+    {
+        None,
+        FullFace
+    }
+
+    public enum Usage
+    {
+        None,
+        Sleep,
+        Exertion,
+        SleepAndExertion
+    }
+
     /// <summary>
     /// Represents a patient's Durable Medical Equipment (DME) needs, including oxygen therapy requirements.
     /// This class captures details such as device specifications, usage instructions, diagnosis,
@@ -11,7 +34,7 @@ namespace Synapse.PatientDmeNeedsUtility
     {
         /// <summary>The type of medical device prescribed (e.g., "Oxygen Tank").</summary>
         [JsonProperty("device")]
-        public string Device { get; set; }
+        public MedicalDeviceType Device { get; set; }
 
         /// <summary>The prescribed oxygen flow rate in liters (e.g., "2 L").</summary>
         [JsonProperty("liters")]
@@ -19,7 +42,7 @@ namespace Synapse.PatientDmeNeedsUtility
 
         /// <summary>When the device should be used.</summary>
         [JsonProperty("usage")]
-        public HashSet<string> Usage { get; set; }
+        public HashSet<Usage> Usage { get; set; }
 
         /// <summary>The medical diagnosis justifying the DME (e.g., "COPD").</summary>
         [JsonProperty("diagnosis")]
@@ -39,7 +62,7 @@ namespace Synapse.PatientDmeNeedsUtility
 
         /// <summary>The type of mask required, if applicable (e.g., "Nasal Cannula"). May be empty.</summary>
         [JsonProperty("mask_type")]
-        public string MaskType { get; set; }
+        public MaskType MaskType { get; set; }
 
         /// <summary>Additional accessories or notes related to the DME. May be null or empty.</summary>
         [JsonProperty("add_ons")]
