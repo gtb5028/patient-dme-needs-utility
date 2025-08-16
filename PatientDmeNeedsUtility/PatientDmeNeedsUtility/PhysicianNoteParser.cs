@@ -54,27 +54,13 @@ namespace Synapse.PatientDmeNeedsUtility
                 : "Unknown";
 
             string liters = null;
-            var usage = (string)null;
+            var usage = ParseUsage(physicianNoteText);
             if (deviceType == "Oxygen Tank")
             {
                 Match literMatch = Regex.Match(physicianNoteText, @"(\d+(\.\d+)?) ?L", RegexOptions.IgnoreCase);
                 if (literMatch.Success)
                 {
                     liters = literMatch.Groups[1].Value + " L";
-                }
-
-                if (physicianNoteText.Contains("sleep", StringComparison.OrdinalIgnoreCase) &&
-                    physicianNoteText.Contains("exertion", StringComparison.OrdinalIgnoreCase))
-                {
-                    usage = "sleep and exertion";
-                }
-                else if (physicianNoteText.Contains("sleep", StringComparison.OrdinalIgnoreCase))
-                {
-                    usage = "sleep";
-                }
-                else if (physicianNoteText.Contains("exertion", StringComparison.OrdinalIgnoreCase))
-                {
-                    usage = "exertion";
                 }
             }
 
@@ -102,6 +88,32 @@ namespace Synapse.PatientDmeNeedsUtility
             };
 
             return result;
+        }
+
+        /// <summary>
+        /// Parses physician note content and extracts usage.
+        /// </summary>
+        /// <param name="physicianNoteText">The text content of the physician note to parse.</param>
+        public static HashSet<string> ParseUsage(string physicianNoteText)
+        {
+            var usage = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            if (string.IsNullOrWhiteSpace(physicianNoteText))
+            {
+                return usage;
+            }
+
+            if (physicianNoteText.Contains("sleep", StringComparison.OrdinalIgnoreCase))
+            {
+                usage.Add("sleep");
+            }
+
+            if (physicianNoteText.Contains("exertion", StringComparison.OrdinalIgnoreCase))
+            {
+                usage.Add("exertion");
+            }
+
+            return usage;
         }
     }
 }

@@ -19,7 +19,7 @@ namespace Synapse.PatientDmeNeedsUtility
 
         /// <summary>When the device should be used.</summary>
         [JsonProperty("usage")]
-        public string Usage { get; set; }
+        public HashSet<string> Usage { get; set; }
 
         /// <summary>The medical diagnosis justifying the DME (e.g., "COPD").</summary>
         [JsonProperty("diagnosis")]

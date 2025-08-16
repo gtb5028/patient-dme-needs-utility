@@ -56,6 +56,26 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
             }
         }
 
+        [Theory]
+        // Standard cases
+        [InlineData("Use oxygen during sleep", new[] { "sleep" })]
+        [InlineData("Oxygen required for exertion", new[] { "exertion" })]
+        [InlineData("Needs oxygen for sleep and exertion", new[] { "sleep", "exertion" })]
+        // Edge cases
+        [InlineData("", new string[0])]
+        [InlineData(null, new string[0])]
+        [InlineData("No usage mentioned", new string[0])]
+        [InlineData("sleeping and exercising", new[] { "sleep" })]
+        // Case sensitivity
+        [InlineData("SLEEP and EXERTION", new[] { "sleep", "exertion" })]
+        public void ParseUsage_DetectsUsageScenarios(string input, string[] expected)
+        {
+            var result = PhysicianNoteParser.ParseUsage(input);
+            var expectedSet = new HashSet<string>(expected, StringComparer.OrdinalIgnoreCase);
+
+            Assert.True(result.SetEquals(expectedSet), $"Expected: {string.Join(",", expected)} | Actual: {string.Join(",", result)}");
+        }
+
         private class PatientDmeNeedsComparer : IEqualityComparer<PatientDmeNeeds>
         {
             public bool Equals(PatientDmeNeeds x, PatientDmeNeeds y)
@@ -72,7 +92,7 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
 
                 return x.Device == y.Device
                     && x.Liters == y.Liters
-                    && x.Usage == y.Usage
+                    && x.Usage.SetEquals(y.Usage)
                     && x.Diagnosis == y.Diagnosis
                     && x.OrderingProvider == y.OrderingProvider
                     && x.PatientName == y.PatientName
