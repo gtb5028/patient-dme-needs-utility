@@ -24,7 +24,7 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
             string expectedJson = ResourceFileHelper.ReadResourceFile(ExpectedJsonPath);
             JObject expectedResult = JObject.Parse(expectedJson);
             var expectedNeeds = expectedResult.ToObject<PatientDmeNeeds>();
-            
+
             var comparer = new PatientDmeNeedsComparer();
             Assert.True(
                 comparer.Equals(expectedNeeds, parsedNeeds),
@@ -114,6 +114,16 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
         public void ParseQualifier_Returns_Correct_Value(string note, string expected)
         {
             var result = PhysicianNoteParser.ParseQualifier(note);
+            Assert.Equal(expected, result);
+        }
+
+        [Theory]
+        [InlineData("Ordering Physician: Smith, John", "Smith, John")]
+        [InlineData("Ordered By Jones, Sarah.", "Jones, Sarah")]
+        [InlineData("No provider mentioned", "Unknown")]
+        public void ParseOrderingProvider_Extracts_Correctly(string note, string expected)
+        {
+            var result = PhysicianNoteParser.ParseOrderingProvider(note);
             Assert.Equal(expected, result);
         }
 
