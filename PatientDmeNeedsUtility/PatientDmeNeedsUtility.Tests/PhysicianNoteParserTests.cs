@@ -117,6 +117,16 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
             Assert.Equal(expected, result);
         }
 
+        [Theory]
+        [InlineData("Ordering Physician: Smith, John", "Smith, John")]
+        [InlineData("Ordered By Jones, Sarah.", "Jones, Sarah")]
+        [InlineData("No provider mentioned", "Unknown")]
+        public void ParseOrderingProvider_Extracts_Correctly(string note, string expected)
+        {
+            var result = PhysicianNoteParser.ParseOrderingProvider(note);
+            Assert.Equal(expected, result);
+        }
+
         private class PatientDmeNeedsComparer : IEqualityComparer<PatientDmeNeeds>
         {
             public bool Equals(PatientDmeNeeds x, PatientDmeNeeds y)

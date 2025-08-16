@@ -33,12 +33,7 @@ namespace Synapse.PatientDmeNeedsUtility
             MaskType maskType = ParseMaskType(physicianNoteText, deviceType);
             string addOns = ParseAddOns(physicianNoteText);
             string qualifier = ParseQualifier(physicianNoteText);
-
-            var providerPattern = @"(?:Ordering Physician|Ordered By)\s*:?\s*(.+)";
-            var matchProvider = Regex.Match(physicianNoteText, providerPattern, RegexOptions.IgnoreCase);
-            var orderingProvider = matchProvider.Success
-                ? matchProvider.Groups[1].Value.Trim().TrimEnd('.', ',')
-                : "Unknown";
+            string orderingProvider = ParseOrderingProvider(physicianNoteText);
 
             string liters = null;
             var usage = ParseUsage(physicianNoteText);
@@ -119,6 +114,25 @@ namespace Synapse.PatientDmeNeedsUtility
             return physicianNoteText.Contains(HumidifierKeyword, StringComparison.OrdinalIgnoreCase)
                 ? HumidifierKeyword
                 : null;
+        }
+
+        private const string ProviderPattern = @"(?:Ordering Physician|Ordered By)\s*:?\s*(.+)";
+        private const string DefaultProvider = "Unknown";
+        private static readonly char[] ProviderTrimChars = new[] { '.', ',' };
+
+        /// <summary>
+        /// Extracts the ordering provider's name from physician notes.
+        /// Handles multiple label formats and cleans trailing punctuation.
+        /// </summary>
+        /// <param name="physicianNoteText">The physician note text to parse.</param>
+        public static string ParseOrderingProvider(string physicianNoteText)
+        {
+            var providerPattern = @"(?:Ordering Physician|Ordered By)\s*:?\s*(.+)";
+            var matchProvider = Regex.Match(physicianNoteText, providerPattern, RegexOptions.IgnoreCase);
+            var orderingProvider = matchProvider.Success
+                ? matchProvider.Groups[1].Value.Trim().TrimEnd('.', ',')
+                : "Unknown";
+            return orderingProvider;
         }
 
         /// <summary>
