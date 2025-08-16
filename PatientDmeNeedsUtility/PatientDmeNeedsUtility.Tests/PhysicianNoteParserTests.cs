@@ -19,13 +19,16 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
         public void Parse_WithTypicalNote_ReturnsExpectedJson()
         {
             string physicianNote = ResourceFileHelper.ReadResourceFile(PhysicianNotePath);
-            string expectedJson = ResourceFileHelper.ReadResourceFile(ExpectedJsonPath);
-            JObject parsedResult = PhysicianNoteParser.Parse(physicianNote);
-            JObject expectedResult = JObject.Parse(expectedJson);
+            PatientDmeNeeds parsedNeeds = PhysicianNoteParser.Parse(physicianNote);
 
+            string expectedJson = ResourceFileHelper.ReadResourceFile(ExpectedJsonPath);
+            JObject expectedResult = JObject.Parse(expectedJson);
+            var expectedNeeds = expectedResult.ToObject<PatientDmeNeeds>();
+            
+            var comparer = new PatientDmeNeedsComparer();
             Assert.True(
-                JToken.DeepEquals(expectedResult, parsedResult),
-                "Parsed physician note JSON did not match the expected output."
+                comparer.Equals(expectedNeeds, parsedNeeds),
+                "Parsed physician note did not match the expected output."
             );
         }
 
@@ -50,6 +53,38 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
             {
                 // Fail with details if wrong exception type
                 Assert.Fail($"Expected ArgumentException but got {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
+        private class PatientDmeNeedsComparer : IEqualityComparer<PatientDmeNeeds>
+        {
+            public bool Equals(PatientDmeNeeds x, PatientDmeNeeds y)
+            {
+                if (ReferenceEquals(x, y))
+                {
+                    return true;
+                }
+
+                if (x is null || y is null)
+                {
+                    return false;
+                }
+
+                return x.Device == y.Device
+                    && x.Liters == y.Liters
+                    && x.Usage == y.Usage
+                    && x.Diagnosis == y.Diagnosis
+                    && x.OrderingProvider == y.OrderingProvider
+                    && x.PatientName == y.PatientName
+                    && x.DOB == y.DOB
+                    && x.MaskType == y.MaskType
+                    && x.AddOns == y.AddOns
+                    && x.Qualifier == y.Qualifier;
+            }
+
+            public int GetHashCode(PatientDmeNeeds obj)
+            {
+                throw new NotImplementedException();
             }
         }
     }

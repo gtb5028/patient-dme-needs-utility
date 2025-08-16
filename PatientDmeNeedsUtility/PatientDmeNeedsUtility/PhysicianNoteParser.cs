@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 
 namespace Synapse.PatientDmeNeedsUtility
 {
@@ -13,7 +12,7 @@ namespace Synapse.PatientDmeNeedsUtility
         /// Parses physician note content and extracts relevant DME order details.
         /// </summary>
         /// <param name="physicianNoteText">The text content of the physician note to parse.</param>
-        public static JObject Parse(string physicianNoteText)
+        public static PatientDmeNeeds Parse(string physicianNoteText)
         {
             if (string.IsNullOrWhiteSpace(physicianNoteText))
             {
@@ -88,23 +87,19 @@ namespace Synapse.PatientDmeNeedsUtility
             var matchDiagnosis = Regex.Match(physicianNoteText, @"Diagnosis:\s*(.+)", RegexOptions.IgnoreCase);
             var diagnosis = matchDiagnosis.Success ? matchDiagnosis.Groups[1].Value.Trim() : string.Empty;
 
-            var result = new JObject
+            var result = new PatientDmeNeeds
             {
-                ["device"] = deviceType,
-                ["mask_type"] = maskType,
-                ["add_ons"] = addOns != null ? new JArray(addOns) : null,
-                ["qualifier"] = qualifier,
-                ["ordering_provider"] = orderingProvider,
-                ["patient_name"] = patientName,
-                ["dob"] = dob,
-                ["diagnosis"] = diagnosis
+                Device = deviceType,
+                Liters = liters,
+                Usage = usage,
+                Diagnosis = diagnosis,
+                OrderingProvider = orderingProvider,
+                PatientName = patientName,
+                DOB = dob,
+                MaskType = maskType,
+                AddOns = addOns,
+                Qualifier = qualifier
             };
-
-            if (deviceType == "Oxygen Tank")
-            {
-                result["liters"] = liters;
-                result["usage"] = usage;
-            }
 
             return result;
         }
