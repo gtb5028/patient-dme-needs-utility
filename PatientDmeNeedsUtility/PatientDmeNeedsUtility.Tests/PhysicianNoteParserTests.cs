@@ -157,6 +157,16 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
             Assert.Equal(expected, result);
         }
 
+        [Theory]
+        [InlineData("Diagnosis: Sleep Apnea", "Sleep Apnea")]
+        [InlineData("DIAGNOSIS:   COPD with exacerbation  ", "COPD with exacerbation")]
+        [InlineData("No diagnosis section", "")]
+        public void ParseDiagnosis_Extracts_Correctly(string note, string expected)
+        {
+            var result = PhysicianNoteParser.ParseDiagnosis(note);
+            Assert.Equal(expected, result);
+        }
+
         private class PatientDmeNeedsComparer : IEqualityComparer<PatientDmeNeeds>
         {
             public bool Equals(PatientDmeNeeds x, PatientDmeNeeds y)

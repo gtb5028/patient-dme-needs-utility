@@ -38,9 +38,7 @@ namespace Synapse.PatientDmeNeedsUtility
             var usage = ParseUsage(physicianNoteText);
             string patientName = ParsePatientName(physicianNoteText);
             string dob = ParseDateOfBirth(physicianNoteText);
-
-            var matchDiagnosis = Regex.Match(physicianNoteText, @"Diagnosis:\s*(.+)", RegexOptions.IgnoreCase);
-            var diagnosis = matchDiagnosis.Success ? matchDiagnosis.Groups[1].Value.Trim() : string.Empty;
+            string diagnosis = ParseDiagnosis(physicianNoteText);
 
             var result = new PatientDmeNeeds
             {
@@ -172,6 +170,17 @@ namespace Synapse.PatientDmeNeedsUtility
         {
             var match = Regex.Match(physicianNoteText, @"DOB:\s*(\d{1,2}/\d{1,2}/\d{4})", RegexOptions.IgnoreCase);
             return match.Success ? match.Groups[1].Value : string.Empty;
+        }
+
+        /// <summary>
+        /// Extracts the diagnosis text from physician notes when prefixed with "Diagnosis:".
+        /// Returns empty string if no diagnosis is found.
+        /// </summary>
+        /// <param name="physicianNoteText">The physician note text to parse.</param>
+        public static string ParseDiagnosis(string physicianNoteText)
+        {
+            var match = Regex.Match(physicianNoteText, @"Diagnosis:\s*(.+)", RegexOptions.IgnoreCase);
+            return match.Success ? match.Groups[1].Value.Trim() : string.Empty;
         }
 
         /// <summary>
