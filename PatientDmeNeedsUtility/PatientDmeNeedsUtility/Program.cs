@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using System.Text;
 
 namespace Synapse.PatientDmeNeedsUtility
@@ -40,7 +41,7 @@ namespace Synapse.PatientDmeNeedsUtility
                 // Parse the physician note to extract DME needs and serialize to JSON
                 logger.LogDebug("Parsing physician note");
                 var result = noteParser.Parse(physicianNoteText);
-                var serializedJson = result.ToString();
+                string serializedJson = JsonConvert.SerializeObject(result, Formatting.Indented);
                 logger.LogDebug("Parsed note into JSON: {Json}", serializedJson);
 
                 using (var httpClient = new HttpClient())
