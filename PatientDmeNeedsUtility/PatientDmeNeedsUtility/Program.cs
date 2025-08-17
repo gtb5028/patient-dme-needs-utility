@@ -10,7 +10,7 @@ namespace Synapse.PatientDmeNeedsUtility
     /// </summary>
     class Program
     {
-        static int Main(string[] args)
+        static async Task<int> Main(string[] args)
         {
             // Set up logging
             using var loggerFactory = LoggerFactory.Create(builder =>
@@ -50,7 +50,7 @@ namespace Synapse.PatientDmeNeedsUtility
                     logger.LogInformation("Sending data to API: {ApiUrl}", apiUrl);
 
                     var content = new StringContent(serializedJson, Encoding.UTF8, "application/json");
-                    var response = httpClient.PostAsync(apiUrl, content).GetAwaiter().GetResult();
+                    HttpResponseMessage response = await httpClient.PostAsync(apiUrl, content);
                     logger.LogInformation("API response status: {StatusCode}", response.StatusCode);
                 }
 
