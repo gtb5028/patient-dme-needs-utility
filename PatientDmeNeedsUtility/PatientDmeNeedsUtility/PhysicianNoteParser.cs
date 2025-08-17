@@ -36,9 +36,7 @@ namespace Synapse.PatientDmeNeedsUtility
             string orderingProvider = ParseOrderingProvider(physicianNoteText);
             string liters = ParseOxygenLiters(physicianNoteText, deviceType);
             var usage = ParseUsage(physicianNoteText);
-
-            var matchName = Regex.Match(physicianNoteText, @"Patient Name:\s*(.+)", RegexOptions.IgnoreCase);
-            string patientName = matchName.Success ? matchName.Groups[1].Value.Trim() : string.Empty;
+            string patientName = ParsePatientName(physicianNoteText);
 
             var matchDob = Regex.Match(physicianNoteText, @"DOB:\s*(\d{1,2}/\d{1,2}/\d{4})", RegexOptions.IgnoreCase);
             string dob = matchDob.Success ? matchDob.Groups[1].Value : string.Empty;
@@ -142,7 +140,7 @@ namespace Synapse.PatientDmeNeedsUtility
         /// <param name="deviceType">The detected medical device type.</param>
         public static string ParseOxygenLiters(string physicianNoteText, MedicalDeviceType deviceType)
         {
-            const string litterFlowSuffix = "L"; 
+            const string litterFlowSuffix = "L";
             if (deviceType != MedicalDeviceType.OxygenTank)
             {
                 return null;
@@ -154,6 +152,17 @@ namespace Synapse.PatientDmeNeedsUtility
             return match.Success
                 ? $"{match.Groups[1].Value} {literFlowSuffix}"
                 : null;
+        }
+
+        /// <summary>
+        /// Extracts the patient name from physician notes when prefixed with "Patient Name:".
+        /// Returns empty string if no match is found.
+        /// </summary>
+        /// <param name="physicianNoteText">The physician note text to parse.</param>
+        public static string ParsePatientName(string physicianNoteText)
+        {
+            var match = Regex.Match(physicianNoteText, @"Patient Name:\s*(.+)", RegexOptions.IgnoreCase);
+            return match.Success ? match.Groups[1].Value.Trim() : string.Empty;
         }
 
         /// <summary>
