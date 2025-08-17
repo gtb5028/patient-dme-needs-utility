@@ -1,5 +1,4 @@
 ﻿using Newtonsoft.Json;
-using static Synapse.PatientDmeNeedsUtility.PhysicianNoteParser;
 
 namespace Synapse.PatientDmeNeedsUtility
 {
@@ -21,8 +20,7 @@ namespace Synapse.PatientDmeNeedsUtility
     {
         None,
         Sleep,
-        Exertion,
-        SleepAndExertion
+        Exertion
     }
 
     /// <summary>
