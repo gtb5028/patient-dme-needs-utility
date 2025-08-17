@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using Microsoft.Extensions.Logging;
+using System.Text.RegularExpressions;
 
 namespace Synapse.PatientDmeNeedsUtility
 {
@@ -6,8 +7,10 @@ namespace Synapse.PatientDmeNeedsUtility
     /// Provides functionality to parse physician notes and extract Durable Medical Equipment (DME) needs,
     /// including device types, specifications, and ordering provider information.
     /// </summary>
-    public static class PhysicianNoteParser
+    public class PhysicianNoteParser
     {
+        private readonly ILogger<PhysicianNoteParser> _logger;
+
         public const string AhiQualifierKeyword = "AHI > 20";
         public const string HumidifierKeyword = "humidifier";
         public static readonly Dictionary<string, MedicalDeviceType> DeviceKeywords =
@@ -18,59 +21,114 @@ namespace Synapse.PatientDmeNeedsUtility
                 { "wheelchair", MedicalDeviceType.Wheelchair }
             };
 
+        public PhysicianNoteParser(ILogger<PhysicianNoteParser> logger)
+        {
+            _logger = logger;
+        }
+
         /// <summary>
         /// Parses physician note content and extracts relevant DME order details.
         /// </summary>
         /// <param name="physicianNoteText">The text content of the physician note to parse.</param>
-        public static PatientDmeNeeds Parse(string physicianNoteText)
+        public PatientDmeNeeds Parse(string physicianNoteText)
         {
+            _logger.LogDebug("Beginning parse of physician note");
+
             if (string.IsNullOrWhiteSpace(physicianNoteText))
             {
+                _logger.LogError("Invalid input: physician note text was null or empty");
                 throw new ArgumentException(nameof(physicianNoteText), "Physician note text cannot be null or whitespace.");
             }
 
-            MedicalDeviceType deviceType = ParseDeviceType(physicianNoteText);
-            MaskType maskType = ParseMaskType(physicianNoteText, deviceType);
-            string addOns = ParseAddOns(physicianNoteText);
-            string qualifier = ParseQualifier(physicianNoteText);
-            string orderingProvider = ParseOrderingProvider(physicianNoteText);
-            string liters = ParseOxygenLiters(physicianNoteText, deviceType);
-            var usage = ParseUsage(physicianNoteText);
-            string patientName = ParsePatientName(physicianNoteText);
-            string dob = ParseDateOfBirth(physicianNoteText);
-            string diagnosis = ParseDiagnosis(physicianNoteText);
-
-            var result = new PatientDmeNeeds
+            try
             {
-                Device = deviceType,
-                Liters = liters,
-                Usage = usage,
-                Diagnosis = diagnosis,
-                OrderingProvider = orderingProvider,
-                PatientName = patientName,
-                DOB = dob,
-                MaskType = maskType,
-                AddOns = addOns,
-                Qualifier = qualifier
-            };
+                MedicalDeviceType deviceType = ParseDeviceType(physicianNoteText);
+                _logger.LogInformation("Identified device type: {DeviceType}", deviceType);
 
-            return result;
+                MaskType maskType = ParseMaskType(physicianNoteText, deviceType);
+                if (maskType != MaskType.None)
+                {
+                    _logger.LogDebug("Detected mask type: {MaskType}", maskType);
+                }
+
+                string addOns = ParseAddOns(physicianNoteText);
+                if (!string.IsNullOrEmpty(addOns))
+                {
+                    _logger.LogDebug("Found add-ons: {AddOns}", addOns);
+                }
+
+                string qualifier = ParseQualifier(physicianNoteText);
+                if (!string.IsNullOrEmpty(qualifier))
+                {
+                    _logger.LogDebug("Identified qualifier: {Qualifier}", qualifier);
+                }
+
+                string orderingProvider = ParseOrderingProvider(physicianNoteText);
+                _logger.LogDebug("Extracted ordering provider: {Provider}", orderingProvider);
+
+                string liters = ParseOxygenLiters(physicianNoteText, deviceType);
+                if (!string.IsNullOrEmpty(liters))
+                {
+                    _logger.LogDebug("Determined oxygen flow rate: {Liters}", liters);
+                }
+
+                var usage = ParseUsage(physicianNoteText);
+                if (usage.Count > 0)
+                {
+                    _logger.LogDebug("Identified usage scenarios: {Usage}", string.Join(", ", usage));
+                }
+
+                string patientName = ParsePatientName(physicianNoteText);
+                _logger.LogDebug("Extracted patient name: {PatientName}", patientName);
+
+                string dob = ParseDateOfBirth(physicianNoteText);
+                _logger.LogDebug("Extracted date of birth: {DOB}", dob);
+
+                string diagnosis = ParseDiagnosis(physicianNoteText);
+                _logger.LogInformation("Identified diagnosis: {Diagnosis}", diagnosis);
+
+                var result = new PatientDmeNeeds
+                {
+                    Device = deviceType,
+                    Liters = liters,
+                    Usage = usage,
+                    Diagnosis = diagnosis,
+                    OrderingProvider = orderingProvider,
+                    PatientName = patientName,
+                    DOB = dob,
+                    MaskType = maskType,
+                    AddOns = addOns,
+                    Qualifier = qualifier
+                };
+
+                _logger.LogInformation("Successfully parsed physician note");
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to parse physician note");
+                throw;
+            }
         }
 
         /// <summary>
         /// Parses the physician note text to detect which medical device is mentioned.
         /// </summary>
         /// <param name="physicianNoteText">The text content of the physician note to parse.</param>
-        public static MedicalDeviceType ParseDeviceType(string physicianNoteText)
+        public MedicalDeviceType ParseDeviceType(string physicianNoteText)
         {
+            _logger.LogDebug("Searching for device type in note text");
+
             foreach (var (keyword, deviceType) in DeviceKeywords)
             {
                 if (physicianNoteText.Contains(keyword, StringComparison.OrdinalIgnoreCase))
                 {
+                    _logger.LogDebug("Found device match: {Keyword} → {DeviceType}", keyword, deviceType);
                     return deviceType;
                 }
             }
 
+            _logger.LogWarning("No recognized device type found in note");
             return MedicalDeviceType.Unknown;
         }
 
@@ -79,11 +137,12 @@ namespace Synapse.PatientDmeNeedsUtility
         /// </summary>
         /// <param name="physicianNoteText">The physician's note text to analyze.</param>
         /// <param name="currentDeviceType">The medical device type detected from the notes.</param>
-        public static MaskType ParseMaskType(string physicianNoteText, MedicalDeviceType currentDeviceType)
+        public MaskType ParseMaskType(string physicianNoteText, MedicalDeviceType currentDeviceType)
         {
             if (currentDeviceType == MedicalDeviceType.CPAP &&
                 physicianNoteText.Contains("full face", StringComparison.OrdinalIgnoreCase))
             {
+                _logger.LogDebug("Full face mask requirement detected");
                 return MaskType.FullFace;
             }
 
@@ -94,11 +153,11 @@ namespace Synapse.PatientDmeNeedsUtility
         /// Parses the physician note text to identify any DME add-ons mentioned.
         /// </summary>
         /// <param name="physicianNoteText">The text content of the physician note to parse.</param>
-        public static string ParseAddOns(string physicianNoteText)
+        public string ParseAddOns(string physicianNoteText)
         {
-            return physicianNoteText.Contains(HumidifierKeyword, StringComparison.OrdinalIgnoreCase)
-                ? HumidifierKeyword
-                : null;
+            bool hasAddOn = physicianNoteText.Contains(HumidifierKeyword, StringComparison.OrdinalIgnoreCase);
+            _logger.LogDebug("Add-on detection: {HasAddOn}", hasAddOn);
+            return hasAddOn ? HumidifierKeyword : null;
         }
 
         /// <summary>
@@ -106,14 +165,20 @@ namespace Synapse.PatientDmeNeedsUtility
         /// Handles multiple label formats and cleans trailing punctuation.
         /// </summary>
         /// <param name="physicianNoteText">The physician note text to parse.</param>
-        public static string ParseOrderingProvider(string physicianNoteText)
+        public string ParseOrderingProvider(string physicianNoteText)
         {
             var providerPattern = @"(?:Ordering Physician|Ordered By)\s*:?\s*(.+)";
             var matchProvider = Regex.Match(physicianNoteText, providerPattern, RegexOptions.IgnoreCase);
-            var orderingProvider = matchProvider.Success
-                ? matchProvider.Groups[1].Value.Trim().TrimEnd('.', ',')
-                : "Unknown";
-            return orderingProvider;
+
+            if (matchProvider.Success)
+            {
+                var provider = matchProvider.Groups[1].Value.Trim().TrimEnd('.', ',');
+                _logger.LogDebug("Extracted provider name: {Provider}", provider);
+                return provider;
+            }
+
+            _logger.LogWarning("No ordering provider found in note");
+            return "Unknown";
         }
 
         /// <summary>
@@ -121,11 +186,11 @@ namespace Synapse.PatientDmeNeedsUtility
         /// Currently detects AHI (Apnea-Hypopnea Index) qualifiers for sleep apnea devices.
         /// </summary>
         /// <param name="physicianNoteText">The text content of the physician note to parse.</param>
-        public static string ParseQualifier(string physicianNoteText)
+        public string ParseQualifier(string physicianNoteText)
         {
-            return physicianNoteText.Contains(AhiQualifierKeyword, StringComparison.OrdinalIgnoreCase)
-                ? AhiQualifierKeyword
-                : string.Empty;
+            bool hasQualifier = physicianNoteText.Contains(AhiQualifierKeyword, StringComparison.OrdinalIgnoreCase);
+            _logger.LogDebug("Qualifier detection: {HasQualifier}", hasQualifier);
+            return hasQualifier ? AhiQualifierKeyword : string.Empty;
         }
 
         /// <summary>
@@ -134,20 +199,26 @@ namespace Synapse.PatientDmeNeedsUtility
         /// </summary>
         /// <param name="physicianNoteText">The physician note text to parse.</param>
         /// <param name="deviceType">The detected medical device type.</param>
-        public static string ParseOxygenLiters(string physicianNoteText, MedicalDeviceType deviceType)
+        public string ParseOxygenLiters(string physicianNoteText, MedicalDeviceType deviceType)
         {
-            const string litterFlowSuffix = "L";
             if (deviceType != MedicalDeviceType.OxygenTank)
             {
+                _logger.LogDebug("Skipping liter flow parsing for non-oxygen device");
                 return null;
             }
 
-            const string literFlowSuffix = "L";
-            const string literFlowPattern = @$"(\d+(?:\.\d+)?)\s?{literFlowSuffix}";
+            const string literFlowPattern = @"(\d+(?:\.\d+)?)\s?L";
             var match = Regex.Match(physicianNoteText, literFlowPattern, RegexOptions.IgnoreCase);
-            return match.Success
-                ? $"{match.Groups[1].Value} {literFlowSuffix}"
-                : null;
+
+            if (match.Success)
+            {
+                var liters = $"{match.Groups[1].Value} L";
+                _logger.LogDebug("Extracted oxygen flow rate: {Liters}", liters);
+                return liters;
+            }
+
+            _logger.LogWarning("No oxygen flow rate found for oxygen tank prescription");
+            return null;
         }
 
         /// <summary>
@@ -155,10 +226,19 @@ namespace Synapse.PatientDmeNeedsUtility
         /// Returns empty string if no match is found.
         /// </summary>
         /// <param name="physicianNoteText">The physician note text to parse.</param>
-        public static string ParsePatientName(string physicianNoteText)
+        public string ParsePatientName(string physicianNoteText)
         {
             var match = Regex.Match(physicianNoteText, @"Patient Name:\s*(.+)", RegexOptions.IgnoreCase);
-            return match.Success ? match.Groups[1].Value.Trim() : string.Empty;
+
+            if (match.Success)
+            {
+                var name = match.Groups[1].Value.Trim();
+                _logger.LogDebug("Extracted patient name: {Name}", name);
+                return name;
+            }
+
+            _logger.LogWarning("No patient name found in note");
+            return string.Empty;
         }
 
         /// <summary>
@@ -166,10 +246,19 @@ namespace Synapse.PatientDmeNeedsUtility
         /// Returns empty string if no valid date format is found.
         /// </summary>
         /// <param name="physicianNoteText">The physician note text to parse.</param>
-        public static string ParseDateOfBirth(string physicianNoteText)
+        public string ParseDateOfBirth(string physicianNoteText)
         {
             var match = Regex.Match(physicianNoteText, @"DOB:\s*(\d{1,2}/\d{1,2}/\d{4})", RegexOptions.IgnoreCase);
-            return match.Success ? match.Groups[1].Value : string.Empty;
+
+            if (match.Success)
+            {
+                var dob = match.Groups[1].Value;
+                _logger.LogDebug("Extracted date of birth: {DOB}", dob);
+                return dob;
+            }
+
+            _logger.LogWarning("No valid date of birth found in note");
+            return string.Empty;
         }
 
         /// <summary>
@@ -177,35 +266,49 @@ namespace Synapse.PatientDmeNeedsUtility
         /// Returns empty string if no diagnosis is found.
         /// </summary>
         /// <param name="physicianNoteText">The physician note text to parse.</param>
-        public static string ParseDiagnosis(string physicianNoteText)
+        public string ParseDiagnosis(string physicianNoteText)
         {
             var match = Regex.Match(physicianNoteText, @"Diagnosis:\s*(.+)", RegexOptions.IgnoreCase);
-            return match.Success ? match.Groups[1].Value.Trim() : string.Empty;
+
+            if (match.Success)
+            {
+                var diagnosis = match.Groups[1].Value.Trim();
+                _logger.LogDebug("Extracted diagnosis: {Diagnosis}", diagnosis);
+                return diagnosis;
+            }
+
+            _logger.LogWarning("No diagnosis found in note");
+            return string.Empty;
         }
 
         /// <summary>
         /// Parses physician note content and extracts usage.
         /// </summary>
         /// <param name="physicianNoteText">The text content of the physician note to parse.</param>
-        public static HashSet<Usage> ParseUsage(string physicianNoteText)
+        public HashSet<Usage> ParseUsage(string physicianNoteText)
         {
             var usage = new HashSet<Usage>();
+            _logger.LogDebug("Analyzing usage scenarios");
 
             if (string.IsNullOrWhiteSpace(physicianNoteText))
             {
+                _logger.LogDebug("Empty note - no usage scenarios");
                 return usage;
             }
 
             if (physicianNoteText.Contains("sleep", StringComparison.OrdinalIgnoreCase))
             {
+                _logger.LogDebug("Found sleep usage requirement");
                 usage.Add(Usage.Sleep);
             }
 
             if (physicianNoteText.Contains("exertion", StringComparison.OrdinalIgnoreCase))
             {
+                _logger.LogDebug("Found exertion usage requirement");
                 usage.Add(Usage.Exertion);
             }
 
+            _logger.LogDebug("Identified {Count} usage scenarios", usage.Count);
             return usage;
         }
     }

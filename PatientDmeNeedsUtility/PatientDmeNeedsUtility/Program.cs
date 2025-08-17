@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using Microsoft.Extensions.Logging;
+using System.Text;
 
 namespace Synapse.PatientDmeNeedsUtility
 {
@@ -10,22 +11,56 @@ namespace Synapse.PatientDmeNeedsUtility
     {
         static int Main(string[] args)
         {
-            // Load the physician note from file
-            const string fileName = "physician_note1.txt";
-            var physicianNoteText = ResourceFileHelper.ReadResourceFile(fileName);
-
-            // Parse the physician note to extract DME needs and serialize to JSON
-            var result = PhysicianNoteParser.Parse(physicianNoteText);
-            var serializedJson = result.ToString();
-
-            using (var httpClient = new HttpClient())
+            // Set up logging
+            using var loggerFactory = LoggerFactory.Create(builder =>
             {
-                var apiUrl = "https://alert-api.com/DrExtract";
-                var content = new StringContent(serializedJson, Encoding.UTF8, "application/json");
-                var response = httpClient.PostAsync(apiUrl, content).GetAwaiter().GetResult();
-            }
+                builder
+                    .SetMinimumLevel(LogLevel.Debug) // show Debug+ logs
+                    .AddSimpleConsole(options =>
+                    {
+                        options.TimestampFormat = "hh:mm:ss ";
+                        options.SingleLine = true;
+                        options.IncludeScopes = true;
+                    });
+            });
 
-            return 0;
+            var logger = loggerFactory.CreateLogger<Program>();
+            logger.LogInformation("Starting DME Needs Utility");
+
+            // Create instance of ResourceFileHelper with injected logger
+            var resourceHelper = new ResourceFileHelper(loggerFactory.CreateLogger<ResourceFileHelper>());
+            var noteParser = new PhysicianNoteParser(loggerFactory.CreateLogger<PhysicianNoteParser>());
+
+            try
+            {
+                // Load the physician note from file
+                const string fileName = "physician_note1.txt";
+                var physicianNoteText = resourceHelper.ReadResourceFile(fileName);
+
+                // Parse the physician note to extract DME needs and serialize to JSON
+                logger.LogDebug("Parsing physician note");
+                var result = noteParser.Parse(physicianNoteText);
+                var serializedJson = result.ToString();
+                logger.LogDebug("Parsed note into JSON: {Json}", serializedJson);
+
+                using (var httpClient = new HttpClient())
+                {
+                    var apiUrl = "https://alert-api.com/DrExtract";
+                    logger.LogInformation("Sending data to API: {ApiUrl}", apiUrl);
+
+                    var content = new StringContent(serializedJson, Encoding.UTF8, "application/json");
+                    var response = httpClient.PostAsync(apiUrl, content).GetAwaiter().GetResult();
+                    logger.LogInformation("API response status: {StatusCode}", response.StatusCode);
+                }
+
+                logger.LogInformation("Processing completed successfully");
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "An error occurred during processing");
+                return 1;
+            }
         }
     }
 }
