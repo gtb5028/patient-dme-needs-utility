@@ -146,6 +146,17 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
             Assert.Equal(expected, result);
         }
 
+        [Theory]
+        [InlineData("DOB: 12/31/1990", "12/31/1990")]
+        [InlineData("DOB: 04/12/1952", "04/12/1952")]
+        [InlineData("dob: 1/1/2000", "1/1/2000")] // Case insensitivity
+        [InlineData("No DOB recorded", "")]
+        public void ParseDateOfBirth_Extracts_Correctly(string note, string expected)
+        {
+            var result = PhysicianNoteParser.ParseDateOfBirth(note);
+            Assert.Equal(expected, result);
+        }
+
         private class PatientDmeNeedsComparer : IEqualityComparer<PatientDmeNeeds>
         {
             public bool Equals(PatientDmeNeeds x, PatientDmeNeeds y)

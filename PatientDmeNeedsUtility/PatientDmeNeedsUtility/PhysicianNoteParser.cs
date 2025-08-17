@@ -37,9 +37,7 @@ namespace Synapse.PatientDmeNeedsUtility
             string liters = ParseOxygenLiters(physicianNoteText, deviceType);
             var usage = ParseUsage(physicianNoteText);
             string patientName = ParsePatientName(physicianNoteText);
-
-            var matchDob = Regex.Match(physicianNoteText, @"DOB:\s*(\d{1,2}/\d{1,2}/\d{4})", RegexOptions.IgnoreCase);
-            string dob = matchDob.Success ? matchDob.Groups[1].Value : string.Empty;
+            string dob = ParseDateOfBirth(physicianNoteText);
 
             var matchDiagnosis = Regex.Match(physicianNoteText, @"Diagnosis:\s*(.+)", RegexOptions.IgnoreCase);
             var diagnosis = matchDiagnosis.Success ? matchDiagnosis.Groups[1].Value.Trim() : string.Empty;
@@ -163,6 +161,17 @@ namespace Synapse.PatientDmeNeedsUtility
         {
             var match = Regex.Match(physicianNoteText, @"Patient Name:\s*(.+)", RegexOptions.IgnoreCase);
             return match.Success ? match.Groups[1].Value.Trim() : string.Empty;
+        }
+
+        /// <summary>
+        /// Extracts the patient's date of birth from physician notes when formatted as "DOB: MM/DD/YYYY".
+        /// Returns empty string if no valid date format is found.
+        /// </summary>
+        /// <param name="physicianNoteText">The physician note text to parse.</param>
+        public static string ParseDateOfBirth(string physicianNoteText)
+        {
+            var match = Regex.Match(physicianNoteText, @"DOB:\s*(\d{1,2}/\d{1,2}/\d{4})", RegexOptions.IgnoreCase);
+            return match.Success ? match.Groups[1].Value : string.Empty;
         }
 
         /// <summary>
