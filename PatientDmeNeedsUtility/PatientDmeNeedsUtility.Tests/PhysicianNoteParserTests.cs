@@ -127,6 +127,15 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
             Assert.Equal(expected, result);
         }
 
+        [Theory]
+        [InlineData("Oxygen at 2L/min", MedicalDeviceType.OxygenTank, "2 L")]
+        [InlineData("Needs 1.5 L", MedicalDeviceType.OxygenTank, "1.5 L")]
+        public void ParseOxygenLiters_Formats_Correctly(string note, MedicalDeviceType device, string expected)
+        {
+            var result = PhysicianNoteParser.ParseOxygenLiters(note, device);
+            Assert.Equal(expected, result);
+        }
+
         private class PatientDmeNeedsComparer : IEqualityComparer<PatientDmeNeeds>
         {
             public bool Equals(PatientDmeNeeds x, PatientDmeNeeds y)

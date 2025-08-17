@@ -34,17 +34,8 @@ namespace Synapse.PatientDmeNeedsUtility
             string addOns = ParseAddOns(physicianNoteText);
             string qualifier = ParseQualifier(physicianNoteText);
             string orderingProvider = ParseOrderingProvider(physicianNoteText);
-
-            string liters = null;
+            string liters = ParseOxygenLiters(physicianNoteText, deviceType);
             var usage = ParseUsage(physicianNoteText);
-            if (deviceType == MedicalDeviceType.OxygenTank)
-            {
-                Match literMatch = Regex.Match(physicianNoteText, @"(\d+(\.\d+)?) ?L", RegexOptions.IgnoreCase);
-                if (literMatch.Success)
-                {
-                    liters = literMatch.Groups[1].Value + " L";
-                }
-            }
 
             var matchName = Regex.Match(physicianNoteText, @"Patient Name:\s*(.+)", RegexOptions.IgnoreCase);
             string patientName = matchName.Success ? matchName.Groups[1].Value.Trim() : string.Empty;
@@ -141,6 +132,28 @@ namespace Synapse.PatientDmeNeedsUtility
             return physicianNoteText.Contains(AhiQualifierKeyword, StringComparison.OrdinalIgnoreCase)
                 ? AhiQualifierKeyword
                 : string.Empty;
+        }
+
+        /// <summary>
+        /// Parses and extracts the oxygen flow rate in liters from physician notes.
+        /// Only processes notes when the prescribed device is an oxygen tank.
+        /// </summary>
+        /// <param name="physicianNoteText">The physician note text to parse.</param>
+        /// <param name="deviceType">The detected medical device type.</param>
+        public static string ParseOxygenLiters(string physicianNoteText, MedicalDeviceType deviceType)
+        {
+            const string litterFlowSuffix = "L"; 
+            if (deviceType != MedicalDeviceType.OxygenTank)
+            {
+                return null;
+            }
+
+            const string literFlowSuffix = "L";
+            const string literFlowPattern = @$"(\d+(?:\.\d+)?)\s?{literFlowSuffix}";
+            var match = Regex.Match(physicianNoteText, literFlowPattern, RegexOptions.IgnoreCase);
+            return match.Success
+                ? $"{match.Groups[1].Value} {literFlowSuffix}"
+                : null;
         }
 
         /// <summary>
