@@ -76,7 +76,7 @@ namespace Synapse.PatientDmeNeedsUtility
 
         /// <summary>Additional accessories or notes related to the DME. May be null or empty.</summary>
         [JsonProperty("add_ons")]
-        public required string AddOns { get; set; }
+        public required HashSet<string> AddOns { get; set; }
 
         /// <summary>Any qualifying conditions or codes for insurance purposes. May be empty.</summary>
         [JsonProperty("qualifier")]

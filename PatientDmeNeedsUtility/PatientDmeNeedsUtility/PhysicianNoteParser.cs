@@ -62,8 +62,8 @@ namespace Synapse.PatientDmeNeedsUtility
                     _logger.LogDebug("Detected mask type: {MaskType}", maskType);
                 }
 
-                string addOns = ParseAddOns(physicianNoteText);
-                if (!string.IsNullOrEmpty(addOns))
+                HashSet<string> addOns = ParseAddOns(physicianNoteText);
+                if (addOns.Any())
                 {
                     _logger.LogDebug("Found add-ons: {AddOns}", addOns);
                 }
@@ -160,15 +160,37 @@ namespace Synapse.PatientDmeNeedsUtility
             return MaskType.None;
         }
 
-        /// <summary>
-        /// Parses the physician note text to identify any DME add-ons mentioned.
-        /// </summary>
-        /// <param name="physicianNoteText">The text content of the physician note to parse.</param>
-        public string ParseAddOns(string physicianNoteText)
+        public HashSet<string> ParseAddOns(string physicianNoteText)
         {
-            bool hasAddOn = physicianNoteText.Contains(HumidifierKeyword, StringComparison.OrdinalIgnoreCase);
-            _logger.LogDebug("Add-on detection: {HasAddOn}", hasAddOn);
-            return hasAddOn ? HumidifierKeyword : string.Empty;
+            var addOns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // List of known add-ons
+            var knownAddOns = new[]
+            {
+                "humidifier",
+                "heated humidifier",
+                "heated tubing",
+                "mask cushion",
+                "headgear",
+                "chin strap",
+                "filter"
+            };
+
+            foreach (var addOn in knownAddOns)
+            {
+                if (physicianNoteText.Contains(addOn, StringComparison.OrdinalIgnoreCase))
+                {
+                    addOns.Add(addOn);
+                    _logger.LogDebug("Detected add-on: {AddOn}", addOn);
+                }
+            }
+
+            if (!addOns.Any())
+            {
+                _logger.LogDebug("No add-ons detected in note");
+            }
+
+            return addOns;
         }
 
         /// <summary>
