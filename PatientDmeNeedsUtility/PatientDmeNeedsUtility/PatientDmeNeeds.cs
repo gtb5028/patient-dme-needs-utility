@@ -80,7 +80,7 @@ namespace Synapse.PatientDmeNeedsUtility
 
         /// <summary>Any qualifying conditions or codes for insurance purposes. May be empty.</summary>
         [JsonProperty("qualifier")]
-        public required string Qualifier { get; set; }
+        public required HashSet<string> Qualifiers { get; set; }
     }
 }
  
