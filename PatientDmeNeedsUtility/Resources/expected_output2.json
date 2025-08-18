@@ -1,0 +1,12 @@
+{
+  "device": "CPAP",
+  "liters": "",
+  "usage": [ "Sleep" ],
+  "diagnosis": "Severe sleep apnea",
+  "ordering_provider": "Dr. Foreman",
+  "patient_name": "Lisa Turner",
+  "dob": "09/23/1984",
+  "mask_type": "FullFace",
+  "add_ons": [ "humidifier" ],
+  "qualifiers": [ "AHI:28" ]
+}

@@ -11,7 +11,6 @@ namespace Synapse.PatientDmeNeedsUtility
     {
         private readonly ILogger<PhysicianNoteParser> _logger;
 
-        public const string HumidifierKeyword = "humidifier";
         public static readonly Dictionary<string, MedicalDeviceType> DeviceKeywords =
             new Dictionary<string, MedicalDeviceType>(StringComparer.OrdinalIgnoreCase)
             {
@@ -53,6 +52,8 @@ namespace Synapse.PatientDmeNeedsUtility
 
             try
             {
+                // Normalize the text to handle literal newlines in JSON
+                physicianNoteText = physicianNoteText.Replace("\\n", "\n").Replace("\\r", "\r");
                 MedicalDeviceType deviceType = ParseDeviceType(physicianNoteText);
                 _logger.LogInformation("Identified device type: {DeviceType}", deviceType);
 
@@ -164,11 +165,9 @@ namespace Synapse.PatientDmeNeedsUtility
         {
             var addOns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            // List of known add-ons
             var knownAddOns = new[]
             {
                 "humidifier",
-                "heated humidifier",
                 "heated tubing",
                 "mask cushion",
                 "headgear",
@@ -200,7 +199,7 @@ namespace Synapse.PatientDmeNeedsUtility
         /// <param name="physicianNoteText">The physician note text to parse.</param>
         public string ParseOrderingProvider(string physicianNoteText)
         {
-            var providerPattern = @"(?:Ordering Physician|Ordered By)\s*:?\s*(.+)";
+            var providerPattern = @"(?:Ordering Physician|Ordered By)\s*:?\s*(.+?)(?:\r?\n|\\n|$)";
             var matchProvider = Regex.Match(physicianNoteText, providerPattern, RegexOptions.IgnoreCase);
 
             if (matchProvider.Success)
@@ -288,7 +287,7 @@ namespace Synapse.PatientDmeNeedsUtility
         /// <param name="physicianNoteText">The physician note text to parse.</param>
         public string ParsePatientName(string physicianNoteText)
         {
-            var match = Regex.Match(physicianNoteText, @"Patient Name:\s*(.+)", RegexOptions.IgnoreCase);
+            var match = Regex.Match(physicianNoteText, @"Patient Name:\s*(.+?)(?:\r?\n|\\n|$)", RegexOptions.IgnoreCase);
 
             if (match.Success)
             {
@@ -328,7 +327,7 @@ namespace Synapse.PatientDmeNeedsUtility
         /// <param name="physicianNoteText">The physician note text to parse.</param>
         public string ParseDiagnosis(string physicianNoteText)
         {
-            var match = Regex.Match(physicianNoteText, @"Diagnosis:\s*(.+)", RegexOptions.IgnoreCase);
+            var match = Regex.Match(physicianNoteText, @"Diagnosis:\s*(.+?)(?:\r?\n|\\n|$)", RegexOptions.IgnoreCase);
 
             if (match.Success)
             {
