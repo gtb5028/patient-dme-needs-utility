@@ -21,7 +21,6 @@ namespace Synapse.PatientDmeNeedsUtility
         HeartMonitor
     }
 
-
     public enum MaskType
     {
         None,

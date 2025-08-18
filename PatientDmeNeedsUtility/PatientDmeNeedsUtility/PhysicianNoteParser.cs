@@ -1,5 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace Synapse.PatientDmeNeedsUtility
@@ -11,6 +14,8 @@ namespace Synapse.PatientDmeNeedsUtility
     public class PhysicianNoteParser
     {
         private readonly ILogger<PhysicianNoteParser> _logger;
+        private readonly ApiClient _httpClient;
+        private readonly LlmSettings _settings;
 
         public static readonly Dictionary<string, MedicalDeviceType> DeviceKeywords =
             new Dictionary<string, MedicalDeviceType>(StringComparer.OrdinalIgnoreCase)
@@ -32,9 +37,11 @@ namespace Synapse.PatientDmeNeedsUtility
                 { "heart monitor", MedicalDeviceType.HeartMonitor }
             };
 
-        public PhysicianNoteParser(ILogger<PhysicianNoteParser> logger)
+        public PhysicianNoteParser(ILogger<PhysicianNoteParser> logger, ApiClient httpClient, LlmSettings settings)
         {
             _logger = logger;
+            _httpClient = httpClient;
+            _settings = settings;
         }
 
         /// <summary>
@@ -125,7 +132,6 @@ namespace Synapse.PatientDmeNeedsUtility
             }
         }
 
-        #nullable disable
         /// <summary>
         /// Parses a physician note represented as a JSON string into a <see cref="PatientDmeNeeds"/> object.
         /// </summary>
@@ -150,6 +156,30 @@ namespace Synapse.PatientDmeNeedsUtility
             {
                 _logger.LogError(ex, "Failed to parse physician note JSON");
                 return null;
+            }
+        }
+
+        public async Task<PatientDmeNeeds> ParseWithLlm(string noteText, string expectedJsonTemplate)
+        {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+            try
+            {
+                _logger.LogInformation("Processing physician note with LLM using model {Model}", _settings.Model);
+
+                var prompt = BuildPrompt(noteText, expectedJsonTemplate);
+                var response = await SendLlmRequest(prompt);
+                var result = ParseResponse(response);
+
+                stopwatch.Stop();
+                _logger.LogInformation("Successfully processed note with LLM in {Duration}ms", stopwatch.ElapsedMilliseconds);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                _logger.LogError(ex, "Failed to process note with LLM after {Duration}ms", stopwatch.ElapsedMilliseconds);
+                throw;
             }
         }
 
@@ -399,6 +429,113 @@ namespace Synapse.PatientDmeNeedsUtility
 
             _logger.LogDebug("Identified {Count} usage scenarios", usage.Count);
             return usage;
+        }
+
+        private string BuildPrompt(string noteText, string expectedOutput)
+        {
+            var prompt = $@"
+            You are a medical data extraction system designed to interpret physician notes and output structured medical device data.
+            Your goal is to extract relevant fields and ensure that the values conform to the following enums:
+
+            - Device types: {string.Join(", ", Enum.GetNames(typeof(MedicalDeviceType)))}
+            - Mask types: {string.Join(", ", Enum.GetNames(typeof(MaskType)))}
+            - Usage types: {string.Join(", ", Enum.GetNames(typeof(Usage)))}
+
+            Return **only valid enum values** for these fields. If the note does not specify a value, use the default enum value (Unknown for Device, None for MaskType and Usage).
+
+            Return your output in exactly this JSON format:
+            {expectedOutput}
+
+            Physician note:
+            {noteText}
+
+            Rules:
+            1. Always match the enums exactly (case-insensitive is okay).
+            2. Do not add extra fields.
+            3. If multiple devices are mentioned, choose the primary one for this note.
+            4. For any optional fields not mentioned in the note, use the enum default.
+            ";
+
+            return prompt;
+        }
+
+        private PatientDmeNeeds ParseResponse(string llmResponse)
+        {
+            if (string.IsNullOrWhiteSpace(llmResponse))
+                throw new ArgumentException("LLM response cannot be null or empty", nameof(llmResponse));
+
+            try
+            {
+                using var doc = JsonDocument.Parse(llmResponse);
+
+                // Safely extract content with null checks
+                if (!doc.RootElement.TryGetProperty("choices", out var choicesElement) ||
+                    choicesElement.ValueKind != JsonValueKind.Array ||
+                    choicesElement.GetArrayLength() == 0)
+                {
+                    throw new InvalidOperationException("Invalid LLM response: missing or empty 'choices' array");
+                }
+
+                var firstChoice = choicesElement[0];
+                if (!firstChoice.TryGetProperty("message", out var messageElement) ||
+                    !messageElement.TryGetProperty("content", out var contentElement))
+                {
+                    throw new InvalidOperationException("Invalid LLM response: missing message content");
+                }
+
+                var content = contentElement.GetString();
+                if (string.IsNullOrWhiteSpace(content))
+                {
+                    throw new InvalidOperationException("LLM response content is empty");
+                }
+
+                // Clean up potential code fences
+                content = Regex.Replace(content, @"^```(json)?\s*|\s*```$", string.Empty, RegexOptions.Multiline).Trim();
+
+                _logger.LogDebug("Parsing LLM response content: {Content}", content);
+
+                var result = ParseJson(content);
+                if (result == null)
+                {
+                    throw new InvalidOperationException("Failed to deserialize LLM response to PatientDmeNeeds");
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to parse LLM response as JSON: {Response}", llmResponse);
+                throw new InvalidOperationException("Invalid JSON in LLM response", ex);
+            }
+        }
+
+        private async Task<string> SendLlmRequest(string prompt)
+        {
+            var requestBody = new
+            {
+                model = _settings.Model,
+                messages = new[]
+                {
+                    new { role = "system", content = "You are a helpful assistant that outputs only valid JSON." },
+                    new { role = "user", content = prompt }
+                },
+                temperature = _settings.Temperature
+            };
+
+            var jsonString = JsonConvert.SerializeObject(requestBody, Formatting.Indented);
+            var request = new HttpRequestMessage(HttpMethod.Post, _settings.BaseUrl)
+            {
+                Content = new StringContent(jsonString, Encoding.UTF8, "application/json")
+            };
+
+            var response = await _httpClient.SendWithRetryAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"LLM API request failed with status {response.StatusCode}: {errorContent}");
+            }
+
+            return await response.Content.ReadAsStringAsync();
         }
     }
 }

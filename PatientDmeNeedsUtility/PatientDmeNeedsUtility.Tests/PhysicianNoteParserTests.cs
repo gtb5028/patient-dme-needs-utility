@@ -17,7 +17,7 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
         public void Parse_WithTypicalNote_ReturnsExpectedJson(string notePath, string expectedJsonPath)
         {
             var fileHelper = new ResourceFileHelper(ResourceFileHelperLogger);
-            var parser = new PhysicianNoteParser(PhysicianNoteParserLogger);
+            var parser = new PhysicianNoteParser(PhysicianNoteParserLogger, null, null);
 
             string physicianNote = fileHelper.ReadResourceFile(notePath);
             PatientDmeNeeds parsedNeeds = parser.Parse(physicianNote);
@@ -40,7 +40,7 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
         [InlineData("  ")]
         public void Parse_RejectsInvalidInputs(string input)
         {
-            var parser = new PhysicianNoteParser(PhysicianNoteParserLogger);
+            var parser = new PhysicianNoteParser(PhysicianNoteParserLogger, null, null);
             Assert.Throws<ArgumentException>(() => parser.Parse(input));
         }
 
@@ -59,7 +59,7 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
         [InlineData("No device needed", MedicalDeviceType.Unknown)]
         public void ParseDeviceType_Returns_Correct_Device(string note, MedicalDeviceType expected)
         {
-            var parser = new PhysicianNoteParser(PhysicianNoteParserLogger);
+            var parser = new PhysicianNoteParser(PhysicianNoteParserLogger, null, null);
             var result = parser.ParseDeviceType(note);
             Assert.Equal(expected, result);
         }
@@ -69,7 +69,7 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
         [InlineData("CPAP but no mask specified", MedicalDeviceType.CPAP, MaskType.None)]
         public void ParseMaskType_Returns_Correct_Mask(string note, MedicalDeviceType device, MaskType expected)
         {
-            var parser = new PhysicianNoteParser(PhysicianNoteParserLogger);
+            var parser = new PhysicianNoteParser(PhysicianNoteParserLogger, null, null);
             var result = parser.ParseMaskType(note, device);
             Assert.Equal(expected, result);
         }
@@ -85,7 +85,7 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
         [InlineData("SLEEP and EXERTION", new[] { Usage.Sleep, Usage.Exertion })]
         public void ParseUsage_DetectsUsageScenarios(string input, Usage[] expected)
         {
-            var parser = new PhysicianNoteParser(PhysicianNoteParserLogger);
+            var parser = new PhysicianNoteParser(PhysicianNoteParserLogger, null, null);
             var result = parser.ParseUsage(input);
             var expectedSet = new HashSet<Usage>(expected);
 
@@ -101,7 +101,7 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
         [InlineData("Humidifier and heated tubing included", new[] { "humidifier", "heated tubing" })]
         public void ParseAddOns_Returns_Correct_Values(string note, string[] expected)
         {
-            var parser = new PhysicianNoteParser(PhysicianNoteParserLogger);
+            var parser = new PhysicianNoteParser(PhysicianNoteParserLogger, null, null);
             var result = parser.ParseAddOns(note);
 
             var expectedSet = new HashSet<string>(expected, StringComparer.OrdinalIgnoreCase);
@@ -121,7 +121,7 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
         [InlineData("No qualifiers noted", new string[0])]
         public void ParseQualifiers_Returns_Correct_Values(string note, string[] expected)
         {
-            var parser = new PhysicianNoteParser(PhysicianNoteParserLogger);
+            var parser = new PhysicianNoteParser(PhysicianNoteParserLogger, null, null);
             var result = parser.ParseQualifiers(note);
 
             var expectedSet = new HashSet<string>(expected);
@@ -137,7 +137,7 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
         [InlineData("No provider mentioned", "Unknown")]
         public void ParseOrderingProvider_Extracts_Correctly(string note, string expected)
         {
-            var parser = new PhysicianNoteParser(PhysicianNoteParserLogger);
+            var parser = new PhysicianNoteParser(PhysicianNoteParserLogger, null, null);
             var result = parser.ParseOrderingProvider(note);
             Assert.Equal(expected, result);
         }
@@ -147,7 +147,7 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
         [InlineData("Needs 1.5 L", MedicalDeviceType.OxygenTank, "1.5 L")]
         public void ParseOxygenLiters_Formats_Correctly(string note, MedicalDeviceType device, string expected)
         {
-            var parser = new PhysicianNoteParser(PhysicianNoteParserLogger);
+            var parser = new PhysicianNoteParser(PhysicianNoteParserLogger, null, null);
             var result = parser.ParseOxygenLiters(note, device);
             Assert.Equal(expected, result);
         }
@@ -158,7 +158,7 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
         [InlineData("No name mentioned", "")]
         public void ParsePatientName_Extracts_Correctly(string note, string expected)
         {
-            var parser = new PhysicianNoteParser(PhysicianNoteParserLogger);
+            var parser = new PhysicianNoteParser(PhysicianNoteParserLogger, null, null);
             var result = parser.ParsePatientName(note);
             Assert.Equal(expected, result);
         }
@@ -170,7 +170,7 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
         [InlineData("No DOB recorded", "")]
         public void ParseDateOfBirth_Extracts_Correctly(string note, string expected)
         {
-            var parser = new PhysicianNoteParser(PhysicianNoteParserLogger);
+            var parser = new PhysicianNoteParser(PhysicianNoteParserLogger, null, null);
             var result = parser.ParseDateOfBirth(note);
             Assert.Equal(expected, result);
         }
@@ -181,7 +181,7 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
         [InlineData("No diagnosis section", "")]
         public void ParseDiagnosis_Extracts_Correctly(string note, string expected)
         {
-            var parser = new PhysicianNoteParser(PhysicianNoteParserLogger);
+            var parser = new PhysicianNoteParser(PhysicianNoteParserLogger, null, null);
             var result = parser.ParseDiagnosis(note);
             Assert.Equal(expected, result);
         }
