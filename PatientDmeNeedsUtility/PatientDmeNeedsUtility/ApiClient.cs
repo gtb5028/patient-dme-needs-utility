@@ -11,13 +11,19 @@ public class ApiClient
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger _logger;
-    private const int MaxRetries = 3;
-    private const int BaseRetryMs = 1000;
+    private readonly int _maxRetries = 3;
+    private readonly int _baseRetryMs = 1000;
 
-    public ApiClient(HttpClient httpClient, ILogger<ApiClient> logger)
+    public ApiClient(
+        HttpClient httpClient,
+        ILogger<ApiClient> logger,
+        int maxRetries = 3,
+        int baseRetryMs = 1000)
     {
-        _httpClient = httpClient;
-        _logger = logger;
+        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _maxRetries = maxRetries;
+        _baseRetryMs = baseRetryMs;
     }
 
     public async Task<HttpResponseMessage> SendWithRetryAsync(
@@ -26,7 +32,7 @@ public class ApiClient
     {
         var exceptions = new List<Exception>();
 
-        for (int attempt = 1; attempt <= MaxRetries; attempt++)
+        for (int attempt = 1; attempt <= _maxRetries; attempt++)
         {
             try
             {
@@ -37,10 +43,10 @@ public class ApiClient
 
                 return response;
             }
-            catch (Exception ex) when (ShouldRetry(ex) && attempt < MaxRetries)
+            catch (Exception ex) when (ShouldRetry(ex) && attempt < _maxRetries)
             {
                 exceptions.Add(ex);
-                var delay = BaseRetryMs * (int)Math.Pow(2, attempt - 1);
+                var delay = _baseRetryMs * (int)Math.Pow(2, attempt - 1);
                 _logger.LogWarning(ex, $"Attempt {attempt} failed. Retrying in {delay}ms...");
                 await Task.Delay(delay, cancellationToken);
             }

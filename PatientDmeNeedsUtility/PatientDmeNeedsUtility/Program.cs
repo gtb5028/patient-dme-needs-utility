@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System.Text;
 
@@ -34,11 +35,18 @@ namespace Synapse.PatientDmeNeedsUtility
 
             try
             {
-                // Load the physician note from file
-                const string fileName = "physician_note1.txt";
-                var physicianNoteText = resourceHelper.ReadResourceFile(fileName);
+                // Set up configuration
+                const string appSettingsJsonFileName = "appsettings.json";
+                var configuration = new ConfigurationBuilder()
+                    .SetBasePath(Directory.GetCurrentDirectory())
+                    .AddJsonFile(appSettingsJsonFileName, optional: false, reloadOnChange: true)
+                    .Build();
+
+                var appSettings = new AppSettings();
+                configuration.Bind(appSettings);
 
                 // Parse the physician note to extract DME needs and serialize to JSON
+                var physicianNoteText = resourceHelper.ReadResourceFile(appSettings.Files.DefaultPhysicianNoteFile);
                 logger.LogDebug("Parsing physician note");
                 var result = noteParser.Parse(physicianNoteText);
                 string serializedJson = JsonConvert.SerializeObject(result, Formatting.Indented);
@@ -46,8 +54,8 @@ namespace Synapse.PatientDmeNeedsUtility
 
                 // Parse the physician note to extract DME needs and serialize to JSON
                 using var httpClient = new HttpClient();
-                var client = new ApiClient(httpClient, loggerFactory.CreateLogger<ApiClient>());
-                var request = new HttpRequestMessage(HttpMethod.Post, "https://alert-api.com/DrExtract")
+                var client = new ApiClient(httpClient, loggerFactory.CreateLogger<ApiClient>(), appSettings.Api.BaseRetryMs, appSettings.Api.MaxRetries);
+                var request = new HttpRequestMessage(HttpMethod.Post, appSettings.Api.FullUrl)
                 {
                     Content = new StringContent(serializedJson, Encoding.UTF8, "application/json")
                 };
