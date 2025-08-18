@@ -6,25 +6,24 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
 {
     public class PhysicianNoteParserTests
     {
-        private const string PhysicianNotePath = "physician_note1.txt";
-        private const string ExpectedJsonPath = "expected_output1.json";
-
         public static readonly ILogger<ResourceFileHelper> ResourceFileHelperLogger =
             NullLogger<ResourceFileHelper>.Instance;
 
         public static readonly ILogger<PhysicianNoteParser> PhysicianNoteParserLogger =
             NullLogger<PhysicianNoteParser>.Instance;
 
-        [Fact]
-        public void Parse_WithTypicalNote_ReturnsExpectedJson()
+        [Theory]
+        [InlineData("physician_note1.txt", "expected_output1.json")]
+        [InlineData("physician_note2.txt", "expected_output2.json")]
+        public void Parse_WithTypicalNote_ReturnsExpectedJson(string notePath, string expectedJsonPath)
         {
             var fileHelper = new ResourceFileHelper(ResourceFileHelperLogger);
             var parser = new PhysicianNoteParser(PhysicianNoteParserLogger);
 
-            string physicianNote = fileHelper.ReadResourceFile(PhysicianNotePath);
+            string physicianNote = fileHelper.ReadResourceFile(notePath);
             PatientDmeNeeds parsedNeeds = parser.Parse(physicianNote);
 
-            string expectedJson = fileHelper.ReadResourceFile(ExpectedJsonPath);
+            string expectedJson = fileHelper.ReadResourceFile(expectedJsonPath);
             JObject expectedResult = JObject.Parse(expectedJson);
             var expectedNeeds = expectedResult.ToObject<PatientDmeNeeds>();
             var comparer = new PatientDmeNeedsComparer();
