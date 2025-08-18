@@ -11,7 +11,6 @@ namespace Synapse.PatientDmeNeedsUtility
     {
         private readonly ILogger<PhysicianNoteParser> _logger;
 
-        public const string AhiQualifierKeyword = "AHI > 20";
         public const string HumidifierKeyword = "humidifier";
         public static readonly Dictionary<string, MedicalDeviceType> DeviceKeywords =
             new Dictionary<string, MedicalDeviceType>(StringComparer.OrdinalIgnoreCase)
