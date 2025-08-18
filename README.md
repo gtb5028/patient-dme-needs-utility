@@ -1,57 +1,68 @@
-# Signal Booster Assignment
+# Durable Medical Equipment (DME) Needs Parser
 
-📘 Scenario
+## 📖 Overview
+A refactored system for extracting and processing physician notes containing DME prescriptions. Converts unstructured clinical notes into structured JSON data for documenting patient DME needs.
 
-You’ve inherited a core utility from a developer who believed in “moving fast and breaking things.” The tool reads a physician’s note, extracts relevant information about the patient’s durable medical equipment (DME) needs — such as CPAPs or oxygen tanks — and sends the structured data to an external API.
+### Key Features
+- **Note Processing**: Extracts DME needs from free-text physician notes
+- **Data Validation**: Ensures clinical validity of extracted data
+- **API Integration**: Posts structured data to external systems (simulated)
+- **Error Resilience**: Graceful handling of malformed input
 
-Unfortunately, this developer took minimalism to an extreme:
-- All logic is packed into `Main`
-- Variable names are cryptic and inconsistent
-- The code includes misleading comments and unused logic
-- There’s no logging, no error handling, and no unit tests
+## 🛠️ Development Environment
+### Tools
+- **IDE**: Visual Studio 2022
+- **AI Assistants**:
+  - DeepSeek/ChatGPT (architecture design/code generation)
+  - GitHub Copilot (code generation)
+  - Claude + Windsurf (code review)
+- **Testing Framework**: xUnit
 
-Now, it’s your responsibility to clean it up. The business needs this feature to be reliable, maintainable, and production-ready and they need it fast.
+## ✅ Implemented Requirements
+### Code Quality Improvements
+- Decomposed monolithic `Main` into:
+  - `PhysicianNoteParser` (core logic)
+  - `ResourceFileHelper` (I/O operations)
+  - `PatientDmeNeeds` (data model)
+- Eliminated technical debt:
+  - Removed unused variables
+  - Replaced cryptic names (`JObject r` → `PatientDmeNeeds`)
+  - Updated misleading comments
 
+### Reliability Enhancements
+- Comprehensive error handling:
+  - Input validation
+  - Try/catch blocks
+  - Diagnostic logging
+- Preserved all original functionality
 
-🧪 Your Mission
+### Testing Suite
+- **Unit Tests**: Core parsing logic
+- **Test Data**: Sample notes in `/Resources`
 
-Refactor the provided code into something that’s understandable, testable, and maintainable. Specifically:
+## ⚠️ Assumptions & Limitations
+### Assumptions
+1. Clinical notes follow consistent formatting patterns
+2. `expected_output1.json` represents the canonical output structure
+3. Sensitive data handling:
+   - Removed fallback patient data (privacy concerns)
 
-1. **Refactor the logic into well-named, testable methods**
-   - Improve structure and readability
-   - Remove redundant or dead code
-   - Use clear and consistent naming
+### Limitations
+- API endpoint (`alert-api.com/DrExtract`) is non-functional (sample only)
+- Limited to English-language notes
 
-2. **Introduce logging and basic error handling**
-   - Avoid swallowing exceptions
-   - Log meaningful steps for observability
+## 🏃 Getting Started
+### Requirements
+- .NET 9.0
+- Visual Studio 2022 (recommended)
 
-3. **Write at least one unit test**
-   - Show how you’d test a meaningful part of the logic
+### Running the Project
+1. Clone repository
+2. Open `PatientDmeNeedsUtility.sln` in Visual Studio
+3. Build solution (Ctrl+Shift+B)
+4. Run unit tests via Test Explorer
+5. Set startup project and run (F5)
 
-4. **Replace misleading or unclear comments with helpful ones**
-
-5. **Keep it functional**
-   - Your version must still:
-     - Read a physician note from a file
-     - Extract structured data (device type, provider, etc.)
-     - POST the data to `https://alert-api.com/DrExtract` (Not a real link)
-
-6. **(Optional stretch goals)**
-   - Replace the manual extraction logic with an LLM (e.g., OpenAI or Azure OpenAI)
-   - Accept multiple input formats (e.g., JSON-wrapped notes)
-   - Add configurability for file path or API endpoint
-   - Support more DME device types or qualifiers
-
-📄 README Requirements
-
-Please include a short `README.md` file in your submission with the following:
-
-- What IDE or tools you used (e.g., VS Code, Rider, Visual Studio)
-- Whether you used any AI development tools (e.g., GitHub Copilot, Cursor, Cody)
-- Any assumptions, limitations, or future improvements
-- Instructions to run the project (if needed)
-
-✅ We encourage the use of AI tools to help you complete this assignment part of what we're evaluating is how you integrate modern development practices.
-
-✅ If you are not a C# developer, we want you to re-write this into the language of your choice then follow the above.
+### Sample Command
+```bash
+dotnet run --project PatientDmeNeedsUtility
