@@ -96,13 +96,22 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
         }
 
         [Theory]
-        [InlineData("Patient needs humidifier", PhysicianNoteParser.HumidifierKeyword)]
-        [InlineData("No add-ons needed", "")]
-        public void ParseAddOns_Detects_Humidifier(string note, string expected)
+        [InlineData("Patient requires CPAP with humidifier", new[] { "humidifier" })]
+        [InlineData("CPAP with heated tubing and mask cushion recommended", new[] { "heated tubing", "mask cushion" })]
+        [InlineData("Headgear and chin strap needed for CPAP", new[] { "headgear", "chin strap" })]
+        [InlineData("No add-ons noted", new string[0])]
+        [InlineData("Filter replacement required for oxygen device", new[] { "filter" })]
+        [InlineData("Humidifier and heated tubing included", new[] { "humidifier", "heated tubing" })]
+        public void ParseAddOns_Returns_Correct_Values(string note, string[] expected)
         {
             var parser = new PhysicianNoteParser(PhysicianNoteParserLogger);
             var result = parser.ParseAddOns(note);
-            Assert.Equal(expected, result);
+
+            var expectedSet = new HashSet<string>(expected, StringComparer.OrdinalIgnoreCase);
+            var resultSet = new HashSet<string>(result, StringComparer.OrdinalIgnoreCase);
+
+            Assert.True(expectedSet.SetEquals(resultSet),
+                $"Expected: [{string.Join(", ", expectedSet)}], Actual: [{string.Join(", ", resultSet)}]");
         }
 
         [Theory]
@@ -202,7 +211,7 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
                     && x.PatientName == y.PatientName
                     && x.DOB == y.DOB
                     && x.MaskType == y.MaskType
-                    && x.AddOns == y.AddOns
+                    && x.AddOns.SetEquals(y.AddOns)
                     && x.Qualifiers.SetEquals(y.Qualifiers);
             }
 
