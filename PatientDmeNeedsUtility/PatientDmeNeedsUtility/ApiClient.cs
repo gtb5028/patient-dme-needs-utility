@@ -31,6 +31,8 @@ public class ApiClient
         CancellationToken cancellationToken = default)
     {
         var exceptions = new List<Exception>();
+        var totalElapsedTime = TimeSpan.Zero;
+        var maxTotalWaitTime = TimeSpan.FromSeconds(30);
 
         for (int attempt = 1; attempt <= _maxRetries; attempt++)
         {
@@ -46,12 +48,22 @@ public class ApiClient
             catch (Exception ex) when (ShouldRetry(ex) && attempt < _maxRetries)
             {
                 exceptions.Add(ex);
-                var delay = _baseRetryMs * (int)Math.Pow(2, attempt - 1);
-                _logger.LogWarning(ex, $"Attempt {attempt} failed. Retrying in {delay}ms...");
+                var delay = TimeSpan.FromMilliseconds(_baseRetryMs * Math.Pow(2, attempt - 1));
+
+                // Check if adding this delay would exceed our maximum wait time
+                if (totalElapsedTime + delay > maxTotalWaitTime)
+                {
+                    _logger.LogWarning($"Total wait time would exceed maximum of {maxTotalWaitTime.TotalSeconds}s");
+                    break;
+                }
+
+                _logger.LogWarning(ex, $"Attempt {attempt} failed. Retrying in {delay.TotalMilliseconds}ms...");
                 await Task.Delay(delay, cancellationToken);
+                totalElapsedTime += delay;
             }
         }
-        throw new AggregateException("Max retries reached", exceptions);
+
+        throw new AggregateException($"Max retries reached (total wait time: {totalElapsedTime.TotalSeconds}s)", exceptions);
     }
 
     private bool ShouldRetry(Exception ex)

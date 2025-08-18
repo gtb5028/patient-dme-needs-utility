@@ -57,5 +57,10 @@
         /// Default physician note file to process.
         /// </summary>
         public string DefaultPhysicianNoteFile { get; set; } = "physician_note1.txt";
+
+        /// <summary>
+        /// Default physician note file to process.
+        /// </summary>
+        public string DefaultExpectedOutputFile { get; set; } = "physician_note1.txt";
     }
 }

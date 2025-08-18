@@ -1,23 +1,23 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using System.Net.Http.Headers;
 using System.Text;
 
 namespace Synapse.PatientDmeNeedsUtility
 {
     /// <summary>
-    /// Processes physician notes to extract medical device orders (CPAP, oxygen tanks, wheelchairs)
+    /// Processes physician notes to extract medical device needs (CPAP, oxygen tanks, wheelchairs)
     /// and related specifications, then sends the extracted data to an API endpoint.
     /// </summary>
-    class Program
+    internal sealed class Program
     {
         static async Task<int> Main(string[] args)
         {
-            // Set up logging
             using var loggerFactory = LoggerFactory.Create(builder =>
             {
                 builder
-                    .SetMinimumLevel(LogLevel.Debug) // show Debug+ logs
+                    .SetMinimumLevel(LogLevel.Debug)
                     .AddSimpleConsole(options =>
                     {
                         options.TimestampFormat = "hh:mm:ss ";
@@ -27,41 +27,48 @@ namespace Synapse.PatientDmeNeedsUtility
             });
 
             var logger = loggerFactory.CreateLogger<Program>();
-            logger.LogInformation("Starting DME Needs Utility");
+            logger.LogInformation("Starting Patient DME Needs Utility");
 
-            // Create instance of ResourceFileHelper with injected logger
+            var configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .Build();
+
+            var appSettings = new AppSettings();
+            configuration.Bind(appSettings);
+
+            var llmSettings = new LlmSettings();
+            configuration.GetSection("Llm").Bind(llmSettings);
+
             var resourceHelper = new ResourceFileHelper(loggerFactory.CreateLogger<ResourceFileHelper>());
-            var noteParser = new PhysicianNoteParser(loggerFactory.CreateLogger<PhysicianNoteParser>());
 
             try
             {
-                // Set up configuration
-                const string appSettingsJsonFileName = "appsettings.json";
-                var configuration = new ConfigurationBuilder()
-                    .SetBasePath(Directory.GetCurrentDirectory())
-                    .AddJsonFile(appSettingsJsonFileName, optional: false, reloadOnChange: true)
-                    .Build();
+                // Read physician note from resource
+                var noteText = resourceHelper.ReadResourceFile(appSettings.Files.DefaultPhysicianNoteFile);
 
-                var appSettings = new AppSettings();
-                configuration.Bind(appSettings);
+                // Get the expected result as well
+                var expectedResult = resourceHelper.ReadResourceFile(appSettings.Files.DefaultExpectedOutputFile);
 
-                // Parse the physician note to extract DME needs and serialize to JSON
-                var physicianNoteText = resourceHelper.ReadResourceFile(appSettings.Files.DefaultPhysicianNoteFile);
-                logger.LogDebug("Parsing physician note");
-                var result = noteParser.Parse(physicianNoteText);
-                string serializedJson = JsonConvert.SerializeObject(result, Formatting.Indented);
-                logger.LogDebug("Parsed note into JSON: {Json}", serializedJson);
-
-                // Parse the physician note to extract DME needs and serialize to JSON
                 using var httpClient = new HttpClient();
-                var client = new ApiClient(httpClient, loggerFactory.CreateLogger<ApiClient>(), appSettings.Api.BaseRetryMs, appSettings.Api.MaxRetries);
-                var request = new HttpRequestMessage(HttpMethod.Post, appSettings.Api.FullUrl)
-                {
-                    Content = new StringContent(serializedJson, Encoding.UTF8, "application/json")
-                };
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", llmSettings.OpenRouterApiKey);
+                var apiClient = new ApiClient(httpClient, loggerFactory.CreateLogger<ApiClient>(),
+                                              appSettings.Api.BaseRetryMs, appSettings.Api.MaxRetries);
 
-                logger.LogDebug("Posting JSON: {Json}", serializedJson);
-                var response = await client.SendWithRetryAsync(request);
+                var parser = new PhysicianNoteParser(loggerFactory.CreateLogger<PhysicianNoteParser>(),
+                                                     apiClient, llmSettings);
+
+                // If LLM is enabled, parse physician note (LLM first, fallback to manual)
+                // Otherwise, fall back to manually parsing the note.
+                PatientDmeNeeds patientNeeds = llmSettings.IsEnabled
+                    ? await ParseNoteWithFallbackAsync(parser, noteText, expectedResult, logger)
+                    : parser.Parse(noteText);
+
+                string json = JsonConvert.SerializeObject(patientNeeds, Formatting.Indented);
+                logger.LogDebug("Parsed note JSON: {Json}", json);
+
+                // Send to API
+                await PostJsonToApiAsync(apiClient, appSettings.Api.FullUrl, json, logger);
 
                 logger.LogInformation("Processing completed successfully");
                 return 0;
@@ -71,6 +78,34 @@ namespace Synapse.PatientDmeNeedsUtility
                 logger.LogError(ex, "An error occurred during processing");
                 return 1;
             }
+        }
+
+        private static async Task<PatientDmeNeeds> ParseNoteWithFallbackAsync(
+            PhysicianNoteParser parser, string noteText,
+            string expectedResult, ILogger logger)
+        {
+            try
+            {
+                logger.LogDebug("Parsing physician note via LLM...");
+                return await parser.ParseWithLlm(noteText, expectedResult);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "LLM parsing failed, falling back to manual parsing.");
+                return parser.Parse(noteText);
+            }
+        }
+
+        private static async Task PostJsonToApiAsync(ApiClient client, string url, string json, ILogger logger)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = new StringContent(json, Encoding.UTF8, "application/json")
+            };
+
+            logger.LogDebug("Posting JSON to API: {Json}", json);
+            var response = await client.SendWithRetryAsync(request);
+            logger.LogInformation("API responded with: {StatusCode}", response.StatusCode);
         }
     }
 }
