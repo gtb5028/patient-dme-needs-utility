@@ -157,7 +157,7 @@ namespace Synapse.PatientDmeNeedsUtility
         {
             bool hasAddOn = physicianNoteText.Contains(HumidifierKeyword, StringComparison.OrdinalIgnoreCase);
             _logger.LogDebug("Add-on detection: {HasAddOn}", hasAddOn);
-            return hasAddOn ? HumidifierKeyword : null;
+            return hasAddOn ? HumidifierKeyword : string.Empty;
         }
 
         /// <summary>
@@ -204,7 +204,7 @@ namespace Synapse.PatientDmeNeedsUtility
             if (deviceType != MedicalDeviceType.OxygenTank)
             {
                 _logger.LogDebug("Skipping liter flow parsing for non-oxygen device");
-                return null;
+                return string.Empty;
             }
 
             const string literFlowPattern = @"(\d+(?:\.\d+)?)\s?L";
@@ -218,7 +218,7 @@ namespace Synapse.PatientDmeNeedsUtility
             }
 
             _logger.LogWarning("No oxygen flow rate found for oxygen tank prescription");
-            return null;
+            return string.Empty;
         }
 
         /// <summary>

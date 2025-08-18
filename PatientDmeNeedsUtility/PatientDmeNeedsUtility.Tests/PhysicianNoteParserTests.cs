@@ -27,14 +27,16 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
             string expectedJson = fileHelper.ReadResourceFile(ExpectedJsonPath);
             JObject expectedResult = JObject.Parse(expectedJson);
             var expectedNeeds = expectedResult.ToObject<PatientDmeNeeds>();
-
             var comparer = new PatientDmeNeedsComparer();
             Assert.True(
+                expectedNeeds != null &&
+                parsedNeeds != null &&
                 comparer.Equals(expectedNeeds, parsedNeeds),
                 "Parsed physician note did not match the expected output."
             );
         }
 
+        #nullable disable
         [Theory]
         [InlineData(null)]
         [InlineData("")]
@@ -89,7 +91,7 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
 
         [Theory]
         [InlineData("Patient needs humidifier", PhysicianNoteParser.HumidifierKeyword)]
-        [InlineData("No add-ons needed", null)]
+        [InlineData("No add-ons needed", "")]
         public void ParseAddOns_Detects_Humidifier(string note, string expected)
         {
             var parser = new PhysicianNoteParser(PhysicianNoteParserLogger);
