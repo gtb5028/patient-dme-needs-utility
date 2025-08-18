@@ -1,0 +1,12 @@
+{
+  "device": "OxygenTank",
+  "liters": "2 L",
+  "usage": ["sleep","exertion"],
+  "diagnosis": "COPD",
+  "ordering_provider": "Dr. Cuddy",
+  "patient_name": "Harold Finch",
+  "dob": "04/12/1952",
+  "mask_type": "None",
+  "add_ons": "",
+  "qualifier": ""
+}
