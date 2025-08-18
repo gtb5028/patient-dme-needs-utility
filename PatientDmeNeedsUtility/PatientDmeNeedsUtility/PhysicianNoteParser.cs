@@ -18,7 +18,19 @@ namespace Synapse.PatientDmeNeedsUtility
             {
                 { "CPAP", MedicalDeviceType.CPAP },
                 { "oxygen", MedicalDeviceType.OxygenTank },
-                { "wheelchair", MedicalDeviceType.Wheelchair }
+                { "wheelchair", MedicalDeviceType.Wheelchair },
+                // Added devices here - simply map the keyword
+                // to the enum.
+                { "walker", MedicalDeviceType.Walker },
+                { "cane", MedicalDeviceType.Cane },
+                { "crutches", MedicalDeviceType.Crutches },
+                { "nebulizer", MedicalDeviceType.Nebulizer },
+                { "infusion pump", MedicalDeviceType.InfusionPump },
+                { "tracheostomy tube", MedicalDeviceType.TracheostomyTube },
+                { "prosthesis", MedicalDeviceType.Prosthesis },
+                { "orthotic", MedicalDeviceType.Orthotic },
+                { "blood glucose monitor", MedicalDeviceType.GlucoseMonitor },
+                { "heart monitor", MedicalDeviceType.HeartMonitor }
             };
 
         public PhysicianNoteParser(ILogger<PhysicianNoteParser> logger)
