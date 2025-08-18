@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Newtonsoft.Json.Linq;
 
 namespace Synapse.PatientDmeNeedsUtility.Tests
 {
@@ -24,8 +23,7 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
             PatientDmeNeeds parsedNeeds = parser.Parse(physicianNote);
 
             string expectedJson = fileHelper.ReadResourceFile(expectedJsonPath);
-            JObject expectedResult = JObject.Parse(expectedJson);
-            var expectedNeeds = expectedResult.ToObject<PatientDmeNeeds>();
+            PatientDmeNeeds expectedNeeds = parser.ParseJson(expectedJson);
             var comparer = new PatientDmeNeedsComparer();
             Assert.True(
                 expectedNeeds != null &&

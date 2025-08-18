@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 using System.Text.RegularExpressions;
 
 namespace Synapse.PatientDmeNeedsUtility
@@ -54,6 +55,7 @@ namespace Synapse.PatientDmeNeedsUtility
             {
                 // Normalize the text to handle literal newlines in JSON
                 physicianNoteText = physicianNoteText.Replace("\\n", "\n").Replace("\\r", "\r");
+
                 MedicalDeviceType deviceType = ParseDeviceType(physicianNoteText);
                 _logger.LogInformation("Identified device type: {DeviceType}", deviceType);
 
@@ -120,6 +122,34 @@ namespace Synapse.PatientDmeNeedsUtility
             {
                 _logger.LogError(ex, "Failed to parse physician note");
                 throw;
+            }
+        }
+
+        #nullable disable
+        /// <summary>
+        /// Parses a physician note represented as a JSON string into a <see cref="PatientDmeNeeds"/> object.
+        /// </summary>
+        /// <param name="jsonText">The JSON string representing a physician note.</param>
+        public PatientDmeNeeds ParseJson(string jsonText)
+        {
+            try
+            {
+                string normalizedText = jsonText.Replace("\\n", "\n").Replace("\\r", "\r");
+                JObject result = JObject.Parse(jsonText);
+                var dmeNeeds = result.ToObject<PatientDmeNeeds>();
+
+                if (dmeNeeds == null)
+                {
+                    _logger.LogWarning("Parsed JSON returned null PatientDmeNeeds object.");
+                    return null;
+                }
+
+                return dmeNeeds;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to parse physician note JSON");
+                return null;
             }
         }
 
