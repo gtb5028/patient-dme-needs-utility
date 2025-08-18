@@ -7,8 +7,20 @@ namespace Synapse.PatientDmeNeedsUtility
         Unknown,
         CPAP,
         OxygenTank,
-        Wheelchair
+        Wheelchair,
+        // Added devices here.
+        Walker,
+        Cane,
+        Crutches,
+        Nebulizer,
+        InfusionPump,
+        TracheostomyTube,
+        Prosthesis,
+        Orthotic,
+        GlucoseMonitor,
+        HeartMonitor
     }
+
 
     public enum MaskType
     {

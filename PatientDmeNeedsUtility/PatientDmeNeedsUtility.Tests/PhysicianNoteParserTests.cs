@@ -53,6 +53,12 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
         [InlineData("Prescribe wheelchair", MedicalDeviceType.Wheelchair)]
         [InlineData("Needs CpAp machine", MedicalDeviceType.CPAP)]
         [InlineData("CPAP and oxygen", MedicalDeviceType.CPAP)]
+        [InlineData("Patient uses a walker for mobility", MedicalDeviceType.Walker)]
+        [InlineData("Requires crutches for leg injury", MedicalDeviceType.Crutches)]
+        [InlineData("Patient uses a cane daily", MedicalDeviceType.Cane)]
+        [InlineData("Needs a nebulizer for asthma", MedicalDeviceType.Nebulizer)]
+        [InlineData("Patient requires a prosthesis", MedicalDeviceType.Prosthesis)]
+        [InlineData("Heart monitor prescribed", MedicalDeviceType.HeartMonitor)]
         [InlineData("No device needed", MedicalDeviceType.Unknown)]
         public void ParseDeviceType_Returns_Correct_Device(string note, MedicalDeviceType expected)
         {
