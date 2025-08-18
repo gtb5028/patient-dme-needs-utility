@@ -69,10 +69,10 @@ namespace Synapse.PatientDmeNeedsUtility
                     _logger.LogDebug("Found add-ons: {AddOns}", addOns);
                 }
 
-                string qualifier = ParseQualifier(physicianNoteText);
-                if (!string.IsNullOrEmpty(qualifier))
+                HashSet<string> qualifiers = ParseQualifiers(physicianNoteText);
+                if (qualifiers.Any())
                 {
-                    _logger.LogDebug("Identified qualifier: {Qualifier}", qualifier);
+                    _logger.LogDebug("Identified qualifiers: {Qualifier}", string.Join(",", qualifiers));
                 }
 
                 string orderingProvider = ParseOrderingProvider(physicianNoteText);
@@ -110,7 +110,7 @@ namespace Synapse.PatientDmeNeedsUtility
                     DOB = dob,
                     MaskType = maskType,
                     AddOns = addOns,
-                    Qualifier = qualifier
+                    Qualifiers = qualifiers
                 };
 
                 _logger.LogInformation("Successfully parsed physician note");
@@ -195,14 +195,41 @@ namespace Synapse.PatientDmeNeedsUtility
 
         /// <summary>
         /// Parses the physician note text for qualifying conditions that affect DME approval.
-        /// Currently detects AHI (Apnea-Hypopnea Index) qualifiers for sleep apnea devices.
+        /// Detects multiple qualifiers, including numeric AHI values for sleep apnea devices.
         /// </summary>
         /// <param name="physicianNoteText">The text content of the physician note to parse.</param>
-        public string ParseQualifier(string physicianNoteText)
+        public HashSet<string> ParseQualifiers(string physicianNoteText)
         {
-            bool hasQualifier = physicianNoteText.Contains(AhiQualifierKeyword, StringComparison.OrdinalIgnoreCase);
-            _logger.LogDebug("Qualifier detection: {HasQualifier}", hasQualifier);
-            return hasQualifier ? AhiQualifierKeyword : string.Empty;
+            var qualifiers = new HashSet<string>();
+
+            // 1. Detect AHI with optional comparison (e.g., "AHI:28", "AHI=15", "AHI > 20")
+            var ahiRegex = new Regex(@"\bAHI\s*([:=>]{1,2})\s*(\d+(\.\d+)?)\b", RegexOptions.IgnoreCase);
+            var ahiMatches = ahiRegex.Matches(physicianNoteText);
+            foreach (Match match in ahiMatches)
+            {
+                var op = match.Groups[1].Value.Trim();
+                var value = match.Groups[2].Value;
+                qualifiers.Add($"AHI{op}{value}");
+                _logger.LogDebug("Detected AHI qualifier: {AHI}", $"AHI{op}{value}");
+            }
+
+            // 2. Detect other string-based qualifiers (example: portable, manual, foldable)
+            var knownQualifiers = new[] { "portable", "manual", "foldable", "electric", "stationary" };
+            foreach (var q in knownQualifiers)
+            {
+                if (physicianNoteText.Contains(q, StringComparison.OrdinalIgnoreCase))
+                {
+                    qualifiers.Add(q);
+                    _logger.LogDebug("Detected qualifier: {Qualifier}", q);
+                }
+            }
+
+            if (!qualifiers.Any())
+            {
+                _logger.LogDebug("No qualifiers detected in note");
+            }
+
+            return qualifiers;
         }
 
         /// <summary>

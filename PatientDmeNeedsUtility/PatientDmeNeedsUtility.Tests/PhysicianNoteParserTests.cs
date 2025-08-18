@@ -106,14 +106,23 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
         }
 
         [Theory]
-        [InlineData("Patient has AHI > 20", "AHI > 20")]
-        [InlineData("ahi > 20 observed", "AHI > 20")]
-        [InlineData("No qualifiers noted", "")]
-        public void ParseQualifier_Returns_Correct_Value(string note, string expected)
+        [InlineData("Patient has AHI > 20", new[] { "AHI>20" })]
+        [InlineData("ahi:28 observed during sleep study", new[] { "AHI:28" })]
+        [InlineData("AHI=15, CPAP recommended", new[] { "AHI=15" })]
+        [InlineData("Patient requires a portable oxygen tank", new[] { "portable" })]
+        [InlineData("Wheelchair is stationary and foldable", new[] { "stationary", "foldable" })]
+        [InlineData("Walker is manual and foldable", new[] { "manual", "foldable" })]
+        [InlineData("No qualifiers noted", new string[0])]
+        public void ParseQualifiers_Returns_Correct_Values(string note, string[] expected)
         {
             var parser = new PhysicianNoteParser(PhysicianNoteParserLogger);
-            var result = parser.ParseQualifier(note);
-            Assert.Equal(expected, result);
+            var result = parser.ParseQualifiers(note);
+
+            var expectedSet = new HashSet<string>(expected);
+            var resultSet = new HashSet<string>(result);
+
+            Assert.True(expectedSet.SetEquals(resultSet),
+                $"Expected: [{string.Join(", ", expectedSet)}], Actual: [{string.Join(", ", resultSet)}]");
         }
 
         [Theory]
@@ -194,7 +203,7 @@ namespace Synapse.PatientDmeNeedsUtility.Tests
                     && x.DOB == y.DOB
                     && x.MaskType == y.MaskType
                     && x.AddOns == y.AddOns
-                    && x.Qualifier == y.Qualifier;
+                    && x.Qualifiers.SetEquals(y.Qualifiers);
             }
 
             public int GetHashCode(PatientDmeNeeds obj)
