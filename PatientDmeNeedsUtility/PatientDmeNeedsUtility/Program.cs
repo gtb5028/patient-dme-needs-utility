@@ -44,15 +44,16 @@ namespace Synapse.PatientDmeNeedsUtility
                 string serializedJson = JsonConvert.SerializeObject(result, Formatting.Indented);
                 logger.LogDebug("Parsed note into JSON: {Json}", serializedJson);
 
-                using (var httpClient = new HttpClient())
+                // Parse the physician note to extract DME needs and serialize to JSON
+                using var httpClient = new HttpClient();
+                var client = new ApiClient(httpClient, loggerFactory.CreateLogger<ApiClient>());
+                var request = new HttpRequestMessage(HttpMethod.Post, "https://alert-api.com/DrExtract")
                 {
-                    var apiUrl = "https://alert-api.com/DrExtract";
-                    logger.LogInformation("Sending data to API: {ApiUrl}", apiUrl);
+                    Content = new StringContent(serializedJson, Encoding.UTF8, "application/json")
+                };
 
-                    var content = new StringContent(serializedJson, Encoding.UTF8, "application/json");
-                    HttpResponseMessage response = await httpClient.PostAsync(apiUrl, content);
-                    logger.LogInformation("API response status: {StatusCode}", response.StatusCode);
-                }
+                logger.LogDebug("Posting JSON: {Json}", serializedJson);
+                var response = await client.SendWithRetryAsync(request);
 
                 logger.LogInformation("Processing completed successfully");
                 return 0;
